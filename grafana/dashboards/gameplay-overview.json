@@ -52,7 +52,7 @@
           "type": "grafana-clickhouse-datasource",
           "uid": "telemetry-clickhouse"
         },
-        "query": "SELECT 'Latest reporting build' AS __text, '__latest__' AS __value UNION ALL SELECT build_version AS __text, build_version AS __value FROM (SELECT build_version, max(timestamp) AS last_seen FROM telemetry.events_deduplicated WHERE game_id=${game_id:sqlstring} AND environment=${environment:sqlstring} GROUP BY build_version ORDER BY last_seen DESC, build_version DESC)",
+        "query": "SELECT '__latest__' AS __value, 'Latest reporting build' AS __text UNION ALL SELECT build_version AS __value, build_version AS __text FROM (SELECT build_version, max(timestamp) AS last_seen FROM telemetry.events_deduplicated WHERE game_id=${game_id:sqlstring} AND environment=${environment:sqlstring} GROUP BY build_version ORDER BY last_seen DESC, build_version DESC)",
         "refresh": 1,
         "multi": false,
         "includeAll": false,

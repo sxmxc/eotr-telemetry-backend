@@ -16,6 +16,11 @@ def main():
         build = next(v for v in dashboard["templating"]["list"] if v["name"] == "build_version")
         assert build["current"]["value"] == "__latest__" and "__value" in build["query"]
         assert "max(timestamp)" in build["query"] and "${game_id:sqlstring}" in build["query"]
+        # ClickHouse maps columns positionally: value first, display text second.
+        # Reversing these still produces valid SQL but breaks the latest filter.
+        for branch in build["query"].split(" UNION ALL "):
+            columns = branch.split(" FROM ", 1)[0]
+            assert columns.index(" AS __value") < columns.index(" AS __text"), path
         for panel in dashboard["panels"]:
             query = panel["targets"][0]["rawSql"]
             assert "events_deduplicated" in query or "telemetry.ingest_health" in query

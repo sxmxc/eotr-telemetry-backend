@@ -134,6 +134,9 @@ picker. Late uploads from an older build can therefore change the selection.
 Grafana cannot select a build that has not sent telemetry yet. Pick an explicit
 version to pin historical analysis; the Telemetry Health dashboard shows the
 resolved version. Existing URLs containing `var-build_version` override the default.
+After deploying a selector fix, open the dashboard without `var-build_version` in
+the URL, or select **Latest reporting build** once to resume automatic selection.
+ClickHouse query variables use column order: value first, display label second.
 
 The combat damage panels require v2 events. Human dashboards still default to
 human data: select `bot` to inspect AutoWalker data. Global ingestion counters
