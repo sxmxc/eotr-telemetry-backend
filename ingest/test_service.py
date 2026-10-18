@@ -7,7 +7,7 @@ from unittest.mock import Mock
 
 from service import Ingestor, MAX_BODY, RateLimiter
 
-SCHEMAS = json.loads((Path(__file__).resolve().parents[3] / "telemetry/schemas/events.json").read_text())["events"]
+SCHEMAS = json.loads((Path(__file__).resolve().parents[1] / "schemas/events.json").read_text())["events"]
 
 
 def event():

@@ -220,7 +220,7 @@ def make_handler(ingestor):
 
 
 def main():
-    schema_path = Path(os.environ.get("SCHEMA_PATH", "/app/schemas/events.json"))
+    schema_path = Path(os.environ.get("SCHEMA_PATH", str(Path(__file__).resolve().parents[1] / "schemas/events.json")))
     schemas = json.loads(schema_path.read_text())["events"]
     ingestor = Ingestor(schemas, ClickHouse(), os.environ.get("ALLOWED_GAMES", "echoes_of_the_rift").split(","))
     def report_health():
