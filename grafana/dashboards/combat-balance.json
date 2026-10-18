@@ -1,326 +1,478 @@
 {
-  "uid": "combat-balance",
-  "title": "Combat Balance",
-  "schemaVersion": 39,
-  "editable": false,
-  "tags": [
-    "telemetry",
-    "human"
-  ],
-  "time": {
-    "from": "now-7d",
-    "to": "now"
-  },
-  "templating": {
+  "annotations": {
     "list": [
       {
-        "name": "game_id",
-        "type": "query",
+        "builtIn": 1,
         "datasource": {
-          "type": "grafana-clickhouse-datasource",
-          "uid": "telemetry-clickhouse"
+          "type": "grafana",
+          "uid": "-- Grafana --"
         },
-        "query": "SELECT DISTINCT game_id FROM telemetry.events_deduplicated ORDER BY game_id",
-        "refresh": 1,
-        "multi": false,
-        "includeAll": false,
-        "current": {
-          "text": "echoes_of_the_rift",
-          "value": "echoes_of_the_rift"
-        }
-      },
-      {
-        "name": "environment",
-        "type": "query",
-        "datasource": {
-          "type": "grafana-clickhouse-datasource",
-          "uid": "telemetry-clickhouse"
-        },
-        "query": "SELECT DISTINCT environment FROM telemetry.events_deduplicated ORDER BY environment",
-        "refresh": 1,
-        "multi": false,
-        "includeAll": false,
-        "current": {
-          "text": "qa",
-          "value": "qa"
-        }
-      },
-      {
-        "name": "build_version",
-        "type": "query",
-        "datasource": {
-          "type": "grafana-clickhouse-datasource",
-          "uid": "telemetry-clickhouse"
-        },
-        "query": "SELECT '__latest__' AS __value, 'Latest reporting build' AS __text UNION ALL SELECT build_version AS __value, build_version AS __text FROM (SELECT build_version, max(timestamp) AS last_seen FROM telemetry.events_deduplicated WHERE game_id=${game_id:sqlstring} AND environment=${environment:sqlstring} GROUP BY build_version ORDER BY last_seen DESC, build_version DESC)",
-        "refresh": 1,
-        "multi": false,
-        "includeAll": false,
-        "current": {
-          "text": "Latest reporting build",
-          "value": "__latest__"
-        },
-        "label": "Build",
-        "sort": 0,
-        "description": "Latest event timestamp for this game/environment, across sources and outside the time picker. Select a version to pin history."
-      },
-      {
-        "name": "source_type",
-        "type": "query",
-        "datasource": {
-          "type": "grafana-clickhouse-datasource",
-          "uid": "telemetry-clickhouse"
-        },
-        "query": "SELECT DISTINCT source_type FROM telemetry.events_deduplicated ORDER BY source_type",
-        "refresh": 1,
-        "multi": false,
-        "includeAll": false,
-        "current": {
-          "text": "human",
-          "value": "human"
-        }
+        "enable": true,
+        "hide": true,
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "name": "Annotations & Alerts",
+        "type": "dashboard"
       }
     ]
   },
+  "description": "Defaults to the latest reporting build for the selected game/environment, across sources. Historical builds remain selectable. Panels respect the selected time range and source unless labeled global.",
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 1,
+  "id": 2,
+  "links": [],
   "panels": [
     {
-      "id": 3,
-      "title": "Obelisk destruction",
-      "type": "stat",
       "datasource": {
         "type": "grafana-clickhouse-datasource",
         "uid": "telemetry-clickhouse"
       },
-      "gridPos": {
-        "x": 0,
-        "y": 0,
-        "w": 12,
-        "h": 5
-      },
       "description": "",
       "fieldConfig": {
         "defaults": {
-          "unit": "short",
-          "color": {
-            "mode": "palette-classic"
-          }
-        },
-        "overrides": []
-      },
-      "targets": [
-        {
-          "refId": "A",
-          "editorType": "sql",
-          "queryType": "sql",
-          "format": 1,
-          "rawSql": "SELECT avgOrNull(JSONExtractInt(properties,'turn')) AS destruction_turn, avgOrNull(JSONExtractInt(properties,'remaining')) AS remaining_enemies FROM telemetry.events_deduplicated WHERE $__timeFilter(timestamp) AND game_id=${game_id:sqlstring} AND environment=${environment:sqlstring} AND build_version=if(${build_version:sqlstring}='__latest__', (SELECT build_version FROM telemetry.events_deduplicated WHERE game_id=${game_id:sqlstring} AND environment=${environment:sqlstring} GROUP BY build_version ORDER BY max(timestamp) DESC, build_version DESC LIMIT 1), ${build_version:sqlstring}) AND source_type=${source_type:sqlstring} AND (event_name='obelisk_destroyed') "
-        }
-      ],
-      "options": {
-        "reduceOptions": {
-          "values": false,
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": ""
-        },
-        "colorMode": "value",
-        "graphMode": "none",
-        "textMode": "auto",
-        "orientation": "auto"
-      }
-    },
-    {
-      "id": 4,
-      "title": "Completed battles (v2)",
-      "type": "stat",
-      "datasource": {
-        "type": "grafana-clickhouse-datasource",
-        "uid": "telemetry-clickhouse"
-      },
-      "gridPos": {
-        "x": 12,
-        "y": 0,
-        "w": 12,
-        "h": 5
-      },
-      "description": "",
-      "fieldConfig": {
-        "defaults": {
-          "unit": "short",
-          "color": {
-            "mode": "palette-classic"
-          }
-        },
-        "overrides": []
-      },
-      "targets": [
-        {
-          "refId": "A",
-          "editorType": "sql",
-          "queryType": "sql",
-          "format": 1,
-          "rawSql": "SELECT count() AS battles FROM telemetry.events_deduplicated WHERE $__timeFilter(timestamp) AND game_id=${game_id:sqlstring} AND environment=${environment:sqlstring} AND build_version=if(${build_version:sqlstring}='__latest__', (SELECT build_version FROM telemetry.events_deduplicated WHERE game_id=${game_id:sqlstring} AND environment=${environment:sqlstring} GROUP BY build_version ORDER BY max(timestamp) DESC, build_version DESC LIMIT 1), ${build_version:sqlstring}) AND source_type=${source_type:sqlstring} AND (event_name='encounter_completed' AND schema_version=2) "
-        }
-      ],
-      "options": {
-        "reduceOptions": {
-          "values": false,
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": ""
-        },
-        "colorMode": "value",
-        "graphMode": "none",
-        "textMode": "auto",
-        "orientation": "auto"
-      }
-    },
-    {
-      "id": 2,
-      "title": "Most played cards",
-      "type": "bargauge",
-      "datasource": {
-        "type": "grafana-clickhouse-datasource",
-        "uid": "telemetry-clickhouse"
-      },
-      "gridPos": {
-        "x": 0,
-        "y": 5,
-        "w": 12,
-        "h": 8
-      },
-      "description": "",
-      "fieldConfig": {
-        "defaults": {
-          "unit": "short",
           "color": {
             "mode": "palette-classic"
           },
-          "min": 0
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": 0
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          },
+          "unit": "short"
         },
         "overrides": []
       },
-      "targets": [
-        {
-          "refId": "A",
-          "editorType": "sql",
-          "queryType": "sql",
-          "format": 1,
-          "rawSql": "SELECT JSONExtractString(properties,'card_name') AS card, count() AS plays FROM telemetry.events_deduplicated WHERE $__timeFilter(timestamp) AND game_id=${game_id:sqlstring} AND environment=${environment:sqlstring} AND build_version=if(${build_version:sqlstring}='__latest__', (SELECT build_version FROM telemetry.events_deduplicated WHERE game_id=${game_id:sqlstring} AND environment=${environment:sqlstring} GROUP BY build_version ORDER BY max(timestamp) DESC, build_version DESC LIMIT 1), ${build_version:sqlstring}) AND source_type=${source_type:sqlstring} AND (event_name='card_played') GROUP BY card ORDER BY plays DESC, card LIMIT 20"
-        }
-      ],
+      "gridPos": {
+        "h": 5,
+        "w": 12,
+        "x": 0,
+        "y": 0
+      },
+      "id": 3,
       "options": {
-        "orientation": "horizontal",
-        "displayMode": "gradient",
-        "showUnfilled": true,
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "percentChangeColorMode": "standard",
         "reduceOptions": {
-          "values": true,
           "calcs": [
             "lastNotNull"
           ],
           "fields": "",
-          "limit": 20
+          "values": false
+        },
+        "showPercentChange": false,
+        "textMode": "auto",
+        "wideLayout": true
+      },
+      "pluginVersion": "12.2.0",
+      "targets": [
+        {
+          "editorType": "sql",
+          "format": 1,
+          "queryType": "sql",
+          "rawSql": "SELECT avgOrNull(JSONExtractInt(properties,'turn')) AS destruction_turn, avgOrNull(JSONExtractInt(properties,'remaining')) AS remaining_enemies FROM telemetry.events_deduplicated WHERE $__timeFilter(timestamp) AND game_id=${game_id:sqlstring} AND environment=${environment:sqlstring} AND build_version=if(${build_version:sqlstring}='__latest__', (SELECT build_version FROM telemetry.events_deduplicated WHERE game_id=${game_id:sqlstring} AND environment=${environment:sqlstring} GROUP BY build_version ORDER BY max(timestamp) DESC, build_version DESC LIMIT 1), ${build_version:sqlstring}) AND source_type=${source_type:sqlstring} AND (event_name='obelisk_destroyed') ",
+          "refId": "A"
         }
-      }
+      ],
+      "title": "Obelisk destruction",
+      "type": "stat"
     },
     {
-      "id": 5,
-      "title": "Encounter health damage over time (v2)",
-      "type": "timeseries",
       "datasource": {
         "type": "grafana-clickhouse-datasource",
         "uid": "telemetry-clickhouse"
-      },
-      "gridPos": {
-        "x": 12,
-        "y": 5,
-        "w": 12,
-        "h": 8
       },
       "description": "",
       "fieldConfig": {
         "defaults": {
-          "unit": "short",
           "color": {
             "mode": "palette-classic"
           },
-          "custom": {
-            "drawStyle": "line",
-            "lineWidth": 2,
-            "fillOpacity": 12,
-            "showPoints": "always",
-            "spanNulls": false,
-            "axisCenteredZero": false
-          }
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": 0
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          },
+          "unit": "short"
         },
         "overrides": []
       },
+      "gridPos": {
+        "h": 5,
+        "w": 12,
+        "x": 12,
+        "y": 0
+      },
+      "id": 4,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "percentChangeColorMode": "standard",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showPercentChange": false,
+        "textMode": "auto",
+        "wideLayout": true
+      },
+      "pluginVersion": "12.2.0",
       "targets": [
         {
-          "refId": "A",
           "editorType": "sql",
+          "format": 1,
           "queryType": "sql",
-          "format": 0,
-          "rawSql": "SELECT $__timeInterval(timestamp) AS time, JSONExtractString(properties,'encounter') AS encounter, avg(JSONExtractInt(properties,'damage_taken')) AS health_damage FROM telemetry.events_deduplicated WHERE $__timeFilter(timestamp) AND game_id=${game_id:sqlstring} AND environment=${environment:sqlstring} AND build_version=if(${build_version:sqlstring}='__latest__', (SELECT build_version FROM telemetry.events_deduplicated WHERE game_id=${game_id:sqlstring} AND environment=${environment:sqlstring} GROUP BY build_version ORDER BY max(timestamp) DESC, build_version DESC LIMIT 1), ${build_version:sqlstring}) AND source_type=${source_type:sqlstring} AND (event_name='encounter_completed' AND schema_version=2) GROUP BY time, encounter ORDER BY time, encounter"
+          "rawSql": "SELECT count() AS battles FROM telemetry.events_deduplicated WHERE $__timeFilter(timestamp) AND game_id=${game_id:sqlstring} AND environment=${environment:sqlstring} AND build_version=if(${build_version:sqlstring}='__latest__', (SELECT build_version FROM telemetry.events_deduplicated WHERE game_id=${game_id:sqlstring} AND environment=${environment:sqlstring} GROUP BY build_version ORDER BY max(timestamp) DESC, build_version DESC LIMIT 1), ${build_version:sqlstring}) AND source_type=${source_type:sqlstring} AND (event_name='encounter_completed' AND schema_version=2) ",
+          "refId": "A"
         }
       ],
-      "options": {
-        "tooltip": {
-          "mode": "multi",
-          "sort": "desc"
-        },
-        "legend": {
-          "displayMode": "list",
-          "placement": "bottom",
-          "showLegend": true
-        }
-      },
-      "maxDataPoints": 1000,
-      "interval": "10s"
+      "title": "Completed battles (v2)",
+      "type": "stat"
     },
     {
-      "id": 1,
-      "title": "Encounter damage and healing detail (v2)",
-      "type": "table",
       "datasource": {
         "type": "grafana-clickhouse-datasource",
         "uid": "telemetry-clickhouse"
       },
+      "description": "",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "mappings": [],
+          "min": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": 0
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      },
       "gridPos": {
+        "h": 8,
+        "w": 12,
         "x": 0,
-        "y": 13,
-        "w": 24,
-        "h": 8
+        "y": 5
+      },
+      "id": 2,
+      "options": {
+        "displayMode": "gradient",
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": false
+        },
+        "maxVizHeight": 300,
+        "minVizHeight": 16,
+        "minVizWidth": 8,
+        "namePlacement": "auto",
+        "orientation": "horizontal",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "limit": 20,
+          "values": true
+        },
+        "showUnfilled": true,
+        "sizing": "auto",
+        "valueMode": "color"
+      },
+      "pluginVersion": "12.2.0",
+      "targets": [
+        {
+          "editorType": "sql",
+          "format": 1,
+          "queryType": "sql",
+          "rawSql": "SELECT JSONExtractString(properties,'card_name') AS card, count() AS plays FROM telemetry.events_deduplicated WHERE $__timeFilter(timestamp) AND game_id=${game_id:sqlstring} AND environment=${environment:sqlstring} AND build_version=if(${build_version:sqlstring}='__latest__', (SELECT build_version FROM telemetry.events_deduplicated WHERE game_id=${game_id:sqlstring} AND environment=${environment:sqlstring} GROUP BY build_version ORDER BY max(timestamp) DESC, build_version DESC LIMIT 1), ${build_version:sqlstring}) AND source_type=${source_type:sqlstring} AND (event_name='card_played') GROUP BY card ORDER BY plays DESC, card LIMIT 20",
+          "refId": "A"
+        }
+      ],
+      "title": "Most played cards",
+      "type": "bargauge"
+    },
+    {
+      "datasource": {
+        "type": "grafana-clickhouse-datasource",
+        "uid": "telemetry-clickhouse"
+      },
+      "description": "",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "barWidthFactor": 0.6,
+            "drawStyle": "line",
+            "fillOpacity": 12,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "linear",
+            "lineWidth": 2,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "always",
+            "showValues": false,
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": 0
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 5
+      },
+      "id": 5,
+      "interval": "10s",
+      "maxDataPoints": 1000,
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "hideZeros": false,
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "pluginVersion": "12.2.0",
+      "targets": [
+        {
+          "editorType": "sql",
+          "format": 0,
+          "queryType": "sql",
+          "rawSql": "SELECT $__timeInterval(timestamp) AS time, JSONExtractString(properties,'encounter') AS encounter, avg(JSONExtractInt(properties,'damage_taken')) AS health_damage FROM telemetry.events_deduplicated WHERE $__timeFilter(timestamp) AND game_id=${game_id:sqlstring} AND environment=${environment:sqlstring} AND build_version=if(${build_version:sqlstring}='__latest__', (SELECT build_version FROM telemetry.events_deduplicated WHERE game_id=${game_id:sqlstring} AND environment=${environment:sqlstring} GROUP BY build_version ORDER BY max(timestamp) DESC, build_version DESC LIMIT 1), ${build_version:sqlstring}) AND source_type=${source_type:sqlstring} AND (event_name='encounter_completed' AND schema_version=2) GROUP BY time, encounter ORDER BY time, encounter",
+          "refId": "A"
+        }
+      ],
+      "title": "Encounter health damage over time (v2)",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "grafana-clickhouse-datasource",
+        "uid": "telemetry-clickhouse"
       },
       "description": "V2 only: damage, net loss and healing have distinct meanings. V1 lacks these metrics.",
       "fieldConfig": {
         "defaults": {
-          "unit": "short",
           "color": {
             "mode": "palette-classic"
-          }
+          },
+          "custom": {
+            "align": "auto",
+            "cellOptions": {
+              "type": "auto"
+            },
+            "footer": {
+              "reducers": []
+            },
+            "inspect": false
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": 0
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          },
+          "unit": "short"
         },
         "overrides": []
       },
+      "gridPos": {
+        "h": 8,
+        "w": 24,
+        "x": 0,
+        "y": 13
+      },
+      "id": 1,
+      "options": {
+        "cellHeight": "sm",
+        "showHeader": true,
+        "sortBy": []
+      },
+      "pluginVersion": "12.2.0",
       "targets": [
         {
-          "refId": "A",
           "editorType": "sql",
-          "queryType": "sql",
           "format": 1,
-          "rawSql": "SELECT JSONExtractString(properties,'encounter') AS encounter, count() AS battles, avg(JSONExtractInt(properties,'turns')) AS turns, avg(JSONExtractInt(properties,'damage_taken')) AS health_damage, avg(JSONExtractInt(properties,'net_health_loss')) AS net_health_loss, avg(JSONExtractInt(properties,'healing_received')) AS healing FROM telemetry.events_deduplicated WHERE $__timeFilter(timestamp) AND game_id=${game_id:sqlstring} AND environment=${environment:sqlstring} AND build_version=if(${build_version:sqlstring}='__latest__', (SELECT build_version FROM telemetry.events_deduplicated WHERE game_id=${game_id:sqlstring} AND environment=${environment:sqlstring} GROUP BY build_version ORDER BY max(timestamp) DESC, build_version DESC LIMIT 1), ${build_version:sqlstring}) AND source_type=${source_type:sqlstring} AND (event_name='encounter_completed' AND schema_version=2) GROUP BY encounter ORDER BY battles DESC LIMIT 100"
+          "queryType": "sql",
+          "rawSql": "SELECT JSONExtractString(properties,'encounter') AS encounter, count() AS battles, avg(JSONExtractInt(properties,'turns')) AS turns, avg(JSONExtractInt(properties,'damage_taken')) AS health_damage, avg(JSONExtractInt(properties,'net_health_loss')) AS net_health_loss, avg(JSONExtractInt(properties,'healing_received')) AS healing FROM telemetry.events_deduplicated WHERE $__timeFilter(timestamp) AND game_id=${game_id:sqlstring} AND environment=${environment:sqlstring} AND build_version=if(${build_version:sqlstring}='__latest__', (SELECT build_version FROM telemetry.events_deduplicated WHERE game_id=${game_id:sqlstring} AND environment=${environment:sqlstring} GROUP BY build_version ORDER BY max(timestamp) DESC, build_version DESC LIMIT 1), ${build_version:sqlstring}) AND source_type=${source_type:sqlstring} AND (event_name='encounter_completed' AND schema_version=2) GROUP BY encounter ORDER BY battles DESC LIMIT 100",
+          "refId": "A"
         }
       ],
-      "options": {
-        "showHeader": true,
-        "cellHeight": "sm",
-        "sortBy": []
-      }
+      "title": "Encounter damage and healing detail (v2)",
+      "type": "table"
     }
   ],
+  "preload": false,
   "refresh": "30s",
-  "graphTooltip": 1,
-  "description": "Defaults to the latest reporting build for the selected game/environment, across sources. Historical builds remain selectable. Panels respect the selected time range and source unless labeled global."
+  "schemaVersion": 42,
+  "tags": [
+    "telemetry",
+    "human",
+    "bot"
+  ],
+  "templating": {
+    "list": [
+      {
+        "current": {
+          "text": "echoes_of_the_rift",
+          "value": "echoes_of_the_rift"
+        },
+        "datasource": {
+          "type": "grafana-clickhouse-datasource",
+          "uid": "telemetry-clickhouse"
+        },
+        "includeAll": false,
+        "name": "game_id",
+        "query": "SELECT DISTINCT game_id FROM telemetry.events_deduplicated ORDER BY game_id",
+        "refresh": 1,
+        "type": "query"
+      },
+      {
+        "current": {
+          "text": "qa",
+          "value": "qa"
+        },
+        "datasource": {
+          "type": "grafana-clickhouse-datasource",
+          "uid": "telemetry-clickhouse"
+        },
+        "includeAll": false,
+        "name": "environment",
+        "query": "SELECT DISTINCT environment FROM telemetry.events_deduplicated ORDER BY environment",
+        "refresh": 1,
+        "type": "query"
+      },
+      {
+        "current": {
+          "text": "Latest reporting build",
+          "value": "__latest__"
+        },
+        "datasource": {
+          "type": "grafana-clickhouse-datasource",
+          "uid": "telemetry-clickhouse"
+        },
+        "description": "Latest event timestamp for this game/environment, across sources and outside the time picker. Select a version to pin history.",
+        "includeAll": false,
+        "label": "Build",
+        "name": "build_version",
+        "query": "SELECT '__latest__' AS __value, 'Latest reporting build' AS __text UNION ALL SELECT build_version AS __value, build_version AS __text FROM (SELECT build_version, max(timestamp) AS last_seen FROM telemetry.events_deduplicated WHERE game_id=${game_id:sqlstring} AND environment=${environment:sqlstring} GROUP BY build_version ORDER BY last_seen DESC, build_version DESC)",
+        "refresh": 1,
+        "type": "query"
+      },
+      {
+        "current": {
+          "text": "human",
+          "value": "human"
+        },
+        "datasource": {
+          "type": "grafana-clickhouse-datasource",
+          "uid": "telemetry-clickhouse"
+        },
+        "includeAll": false,
+        "name": "source_type",
+        "query": "SELECT DISTINCT source_type FROM telemetry.events_deduplicated ORDER BY source_type",
+        "refresh": 1,
+        "type": "query"
+      }
+    ]
+  },
+  "time": {
+    "from": "now-7d",
+    "to": "now"
+  },
+  "timepicker": {},
+  "timezone": "",
+  "title": "Combat Balance",
+  "uid": "combat-balance",
+  "version": 3
 }
