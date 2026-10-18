@@ -39,6 +39,17 @@ class IngestionTests(unittest.TestCase):
         self.assertEqual(self.send([event(), bad])[0], 400)
         self.store.insert.assert_not_called()
 
+    def test_corrected_metrics_v2_and_legacy_v1_are_both_accepted(self):
+        value = event()
+        value['event_name'] = 'encounter_completed'
+        value['properties'] = dict(encounter='blobs', outcome='win', turns=6, damage_taken=8)
+        self.assertEqual(self.send([value])[0], 200)
+        value['schema_version'] = 2
+        value['properties'].update(net_health_loss=5, healing_received=3)
+        self.assertEqual(self.send([value])[0], 200)
+        value['properties'].pop('net_health_loss')
+        self.assertEqual(self.send([value])[0], 400)
+
     def test_types_required_and_limits(self):
         for props in ({}, {"stat": "test", "change": True}, {"stat": "x", "change": "3"}, {"stat": "x", "change": 1, "unknown": 2}):
             value = event()

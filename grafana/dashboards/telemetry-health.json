@@ -1,181 +1,344 @@
 {
-  "uid": "telemetry-health",
-  "title": "Telemetry Health",
-  "schemaVersion": 39,
-  "version": 1,
-  "editable": false,
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "datasource": {
+          "type": "grafana",
+          "uid": "-- Grafana --"
+        },
+        "enable": true,
+        "hide": true,
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "name": "Annotations & Alerts",
+        "type": "dashboard"
+      }
+    ]
+  },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 0,
+  "id": 6,
+  "links": [],
+  "panels": [
+    {
+      "datasource": {
+        "type": "grafana-clickhouse-datasource",
+        "uid": "telemetry-clickhouse"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "barWidthFactor": 0.6,
+            "drawStyle": "bars",
+            "fillOpacity": 0,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "showValues": false,
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": 0
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 9,
+        "w": 24,
+        "x": 0,
+        "y": 0
+      },
+      "id": 1,
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": false
+        },
+        "tooltip": {
+          "hideZeros": false,
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "pluginVersion": "12.2.0",
+      "targets": [
+        {
+          "editorType": "sql",
+          "format": 1,
+          "queryType": "sql",
+          "rawSql": "SELECT toStartOfHour(timestamp) AS time, count() AS events FROM telemetry.events_deduplicated WHERE $__timeFilter(timestamp) AND game_id=${game_id:sqlstring} AND environment=${environment:sqlstring} AND build_version=${build_version:sqlstring} AND source_type=${source_type:sqlstring} AND (1) GROUP BY time LIMIT 1000",
+          "refId": "A"
+        }
+      ],
+      "title": "Accepted throughput",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "grafana-clickhouse-datasource",
+        "uid": "telemetry-clickhouse"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "auto",
+            "cellOptions": {
+              "type": "auto"
+            },
+            "footer": {
+              "reducers": []
+            },
+            "inspect": false
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": 0
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 9,
+        "w": 24,
+        "x": 0,
+        "y": 9
+      },
+      "id": 2,
+      "options": {
+        "cellHeight": "sm",
+        "showHeader": true
+      },
+      "pluginVersion": "12.2.0",
+      "targets": [
+        {
+          "editorType": "sql",
+          "format": 1,
+          "queryType": "sql",
+          "rawSql": "SELECT event_name, schema_version, count() AS events FROM telemetry.events_deduplicated WHERE $__timeFilter(timestamp) AND game_id=${game_id:sqlstring} AND environment=${environment:sqlstring} AND build_version=${build_version:sqlstring} AND source_type=${source_type:sqlstring} AND (1) GROUP BY event_name, schema_version LIMIT 1000",
+          "refId": "A"
+        }
+      ],
+      "title": "Schema versions",
+      "type": "table"
+    },
+    {
+      "datasource": {
+        "type": "grafana-clickhouse-datasource",
+        "uid": "telemetry-clickhouse"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "auto",
+            "cellOptions": {
+              "type": "auto"
+            },
+            "footer": {
+              "reducers": []
+            },
+            "inspect": false
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": 0
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 9,
+        "w": 24,
+        "x": 0,
+        "y": 18
+      },
+      "id": 3,
+      "options": {
+        "cellHeight": "sm",
+        "showHeader": true
+      },
+      "pluginVersion": "12.2.0",
+      "targets": [
+        {
+          "editorType": "sql",
+          "format": 1,
+          "queryType": "sql",
+          "rawSql": "SELECT JSONExtractString(properties,'stat') AS metric, sum(JSONExtractFloat(properties,'change')) AS value FROM telemetry.events_deduplicated WHERE $__timeFilter(timestamp) AND game_id=${game_id:sqlstring} AND environment=${environment:sqlstring} AND build_version=${build_version:sqlstring} AND source_type=${source_type:sqlstring} AND (event_name='stat_changed' AND startsWith(JSONExtractString(properties,'stat'),'telemetry_')) GROUP BY metric LIMIT 1000",
+          "refId": "A"
+        }
+      ],
+      "title": "Client delivery health",
+      "type": "table"
+    },
+    {
+      "datasource": {
+        "type": "grafana-clickhouse-datasource",
+        "uid": "telemetry-clickhouse"
+      },
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 9,
+        "w": 24,
+        "x": 0,
+        "y": 27
+      },
+      "id": 4,
+      "options": {},
+      "targets": [
+        {
+          "editorType": "sql",
+          "format": 1,
+          "queryType": "sql",
+          "rawSql": "SELECT timestamp, requests, accepted, rejected, rate_limited, storage_failures FROM telemetry.ingest_health WHERE $__timeFilter(timestamp) ORDER BY timestamp DESC LIMIT 1000",
+          "refId": "A"
+        }
+      ],
+      "title": "API rejection, rate-limit and storage counters (global server totals)",
+      "type": "table"
+    }
+  ],
+  "preload": false,
+  "refresh": "",
+  "schemaVersion": 42,
   "tags": [
     "telemetry",
     "human"
   ],
+  "templating": {
+    "list": [
+      {
+        "current": {
+          "text": "echoes_of_the_rift",
+          "value": "echoes_of_the_rift"
+        },
+        "datasource": {
+          "type": "grafana-clickhouse-datasource",
+          "uid": "telemetry-clickhouse"
+        },
+        "includeAll": false,
+        "name": "game_id",
+        "query": "SELECT DISTINCT game_id FROM telemetry.events_deduplicated ORDER BY game_id",
+        "refresh": 1,
+        "type": "query"
+      },
+      {
+        "current": {
+          "text": "qa",
+          "value": "qa"
+        },
+        "datasource": {
+          "type": "grafana-clickhouse-datasource",
+          "uid": "telemetry-clickhouse"
+        },
+        "includeAll": false,
+        "name": "environment",
+        "query": "SELECT DISTINCT environment FROM telemetry.events_deduplicated ORDER BY environment",
+        "refresh": 1,
+        "type": "query"
+      },
+      {
+        "current": {
+          "text": "0.0.7.0",
+          "value": "0.0.7.0"
+        },
+        "datasource": {
+          "type": "grafana-clickhouse-datasource",
+          "uid": "telemetry-clickhouse"
+        },
+        "includeAll": false,
+        "name": "build_version",
+        "query": "SELECT DISTINCT build_version FROM telemetry.events_deduplicated ORDER BY build_version",
+        "refresh": 1,
+        "type": "query"
+      },
+      {
+        "current": {
+          "text": "human",
+          "value": "human"
+        },
+        "datasource": {
+          "type": "grafana-clickhouse-datasource",
+          "uid": "telemetry-clickhouse"
+        },
+        "includeAll": false,
+        "name": "source_type",
+        "query": "SELECT DISTINCT source_type FROM telemetry.events_deduplicated ORDER BY source_type",
+        "refresh": 1,
+        "type": "query"
+      }
+    ]
+  },
   "time": {
     "from": "now-7d",
     "to": "now"
   },
-  "templating": {
-    "list": [
-      {
-        "name": "game_id",
-        "type": "query",
-        "datasource": {
-          "type": "grafana-clickhouse-datasource",
-          "uid": "telemetry-clickhouse"
-        },
-        "query": "SELECT DISTINCT game_id FROM telemetry.events_deduplicated ORDER BY game_id",
-        "refresh": 1,
-        "multi": false,
-        "includeAll": false,
-        "current": {
-          "text": "echoes_of_the_rift",
-          "value": "echoes_of_the_rift"
-        }
-      },
-      {
-        "name": "environment",
-        "type": "query",
-        "datasource": {
-          "type": "grafana-clickhouse-datasource",
-          "uid": "telemetry-clickhouse"
-        },
-        "query": "SELECT DISTINCT environment FROM telemetry.events_deduplicated ORDER BY environment",
-        "refresh": 1,
-        "multi": false,
-        "includeAll": false,
-        "current": {
-          "text": "qa",
-          "value": "qa"
-        }
-      },
-      {
-        "name": "build_version",
-        "type": "query",
-        "datasource": {
-          "type": "grafana-clickhouse-datasource",
-          "uid": "telemetry-clickhouse"
-        },
-        "query": "SELECT DISTINCT build_version FROM telemetry.events_deduplicated ORDER BY build_version",
-        "refresh": 1,
-        "multi": false,
-        "includeAll": false,
-        "current": {
-          "text": "0.0.7.0",
-          "value": "0.0.7.0"
-        }
-      },
-      {
-        "name": "source_type",
-        "type": "query",
-        "datasource": {
-          "type": "grafana-clickhouse-datasource",
-          "uid": "telemetry-clickhouse"
-        },
-        "query": "SELECT DISTINCT source_type FROM telemetry.events_deduplicated ORDER BY source_type",
-        "refresh": 1,
-        "multi": false,
-        "includeAll": false,
-        "current": {
-          "text": "human",
-          "value": "human"
-        }
-      }
-    ]
-  },
-  "panels": [
-    {
-      "id": 1,
-      "title": "Accepted throughput",
-      "type": "table",
-      "gridPos": {
-        "x": 0,
-        "y": 0,
-        "w": 24,
-        "h": 9
-      },
-      "datasource": {
-        "type": "grafana-clickhouse-datasource",
-        "uid": "telemetry-clickhouse"
-      },
-      "targets": [
-        {
-          "refId": "A",
-          "queryType": "sql",
-          "editorType": "sql",
-          "format": 1,
-          "rawSql": "SELECT toStartOfHour(timestamp) AS time, count() AS events FROM telemetry.events_deduplicated WHERE $__timeFilter(timestamp) AND game_id=${game_id:sqlstring} AND environment=${environment:sqlstring} AND build_version=${build_version:sqlstring} AND source_type=${source_type:sqlstring} AND (1) GROUP BY time LIMIT 1000"
-        }
-      ]
-    },
-    {
-      "id": 2,
-      "title": "Schema versions",
-      "type": "table",
-      "gridPos": {
-        "x": 0,
-        "y": 9,
-        "w": 24,
-        "h": 9
-      },
-      "datasource": {
-        "type": "grafana-clickhouse-datasource",
-        "uid": "telemetry-clickhouse"
-      },
-      "targets": [
-        {
-          "refId": "A",
-          "queryType": "sql",
-          "editorType": "sql",
-          "format": 1,
-          "rawSql": "SELECT event_name, schema_version, count() AS events FROM telemetry.events_deduplicated WHERE $__timeFilter(timestamp) AND game_id=${game_id:sqlstring} AND environment=${environment:sqlstring} AND build_version=${build_version:sqlstring} AND source_type=${source_type:sqlstring} AND (1) GROUP BY event_name, schema_version LIMIT 1000"
-        }
-      ]
-    },
-    {
-      "id": 3,
-      "title": "Client delivery health",
-      "type": "table",
-      "gridPos": {
-        "x": 0,
-        "y": 18,
-        "w": 24,
-        "h": 9
-      },
-      "datasource": {
-        "type": "grafana-clickhouse-datasource",
-        "uid": "telemetry-clickhouse"
-      },
-      "targets": [
-        {
-          "refId": "A",
-          "queryType": "sql",
-          "editorType": "sql",
-          "format": 1,
-          "rawSql": "SELECT JSONExtractString(properties,'stat') AS metric, sum(JSONExtractFloat(properties,'change')) AS value FROM telemetry.events_deduplicated WHERE $__timeFilter(timestamp) AND game_id=${game_id:sqlstring} AND environment=${environment:sqlstring} AND build_version=${build_version:sqlstring} AND source_type=${source_type:sqlstring} AND (event_name='stat_changed' AND startsWith(JSONExtractString(properties,'stat'),'telemetry_')) GROUP BY metric LIMIT 1000"
-        }
-      ]
-    },
-    {
-      "id": 4,
-      "title": "API rejection, rate-limit and storage counters (global server totals)",
-      "type": "table",
-      "gridPos": {
-        "x": 0,
-        "y": 27,
-        "w": 24,
-        "h": 9
-      },
-      "datasource": {
-        "type": "grafana-clickhouse-datasource",
-        "uid": "telemetry-clickhouse"
-      },
-      "targets": [
-        {
-          "refId": "A",
-          "queryType": "sql",
-          "editorType": "sql",
-          "format": 1,
-          "rawSql": "SELECT timestamp, requests, accepted, rejected, rate_limited, storage_failures FROM telemetry.ingest_health WHERE $__timeFilter(timestamp) ORDER BY timestamp DESC LIMIT 1000"
-        }
-      ]
-    }
-  ]
+  "timepicker": {},
+  "timezone": "",
+  "title": "Telemetry Health",
+  "uid": "telemetry-health",
+  "version": 1
 }

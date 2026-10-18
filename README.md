@@ -102,7 +102,21 @@ with `docker compose exec grafana cat /etc/grafana/provisioning/datasources/clic
 and confirm it matches the pulled repository file.
 Dashboards may show **No data** until matching events arrive. The game should send
 to `http://YOUR_HOST:8080/v1/events`; `/health` checks API liveness only.
-AutoWalker records local JSONL by default and does not upload its runs.
+AutoWalker uploads QA/bot events by default when the game's HTTP transport and
+consent permit it, alongside bounded local JSONL. `--telemetry-local` explicitly
+disables uploads. Deploy the bundled schemas before running game builds emitting
+`encounter_completed` or `simulation_completed` v2. V1 remains accepted; v2 separates
+health damage, healing and net health loss and uses total player turns for a run.
+The combat dashboard uses v2 metrics; the QA dashboard separates schema versions
+and encounter/run modes. Rebuild/restart ingestion and restart Grafana to provision
+the updated schemas and dashboards; no table migration is required.
+
+From the updated backend checkout on the Docker host:
+
+```sh
+docker compose up -d --build ingest
+docker compose restart grafana
+```
 
 ## Contract, deduplication and limits
 

@@ -2,7 +2,7 @@
   "uid": "combat-balance",
   "title": "Combat Balance",
   "schemaVersion": 39,
-  "version": 1,
+  "version": 2,
   "editable": false,
   "tags": [
     "telemetry",
@@ -101,7 +101,7 @@
           "queryType": "sql",
           "editorType": "sql",
           "format": 1,
-          "rawSql": "SELECT JSONExtractString(properties,'encounter') AS encounter, count() AS battles, avg(JSONExtractInt(properties,'turns')) AS turns, avg(JSONExtractInt(properties,'damage_taken')) AS damage FROM telemetry.events_deduplicated WHERE $__timeFilter(timestamp) AND game_id=${game_id:sqlstring} AND environment=${environment:sqlstring} AND build_version=${build_version:sqlstring} AND source_type=${source_type:sqlstring} AND (event_name='encounter_completed') GROUP BY encounter LIMIT 1000"
+          "rawSql": "SELECT JSONExtractString(properties,'encounter') AS encounter, count() AS battles, avg(JSONExtractInt(properties,'turns')) AS turns, avg(JSONExtractInt(properties,'damage_taken')) AS health_damage, avg(JSONExtractInt(properties,'net_health_loss')) AS net_health_loss, avg(JSONExtractInt(properties,'healing_received')) AS healing FROM telemetry.events_deduplicated WHERE $__timeFilter(timestamp) AND game_id=${game_id:sqlstring} AND environment=${environment:sqlstring} AND build_version=${build_version:sqlstring} AND source_type=${source_type:sqlstring} AND (event_name='encounter_completed' AND schema_version=2) GROUP BY encounter LIMIT 1000"
         }
       ]
     },
