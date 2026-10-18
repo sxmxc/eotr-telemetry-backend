@@ -2,12 +2,13 @@ apiVersion: 1
 datasources:
   - name: Telemetry ClickHouse
     uid: telemetry-clickhouse
+    version: 2
     type: grafana-clickhouse-datasource
     access: proxy
     jsonData:
       host: clickhouse
-      port: 8123
-      protocol: http
+      port: 9000
+      protocol: native
       username: grafana_reader
       defaultDatabase: telemetry
       dialTimeout: "10"

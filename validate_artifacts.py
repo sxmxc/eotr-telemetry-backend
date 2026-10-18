@@ -68,12 +68,18 @@ def main():
         data = yaml.safe_load(compose)
         assert set(data["services"]) == {"clickhouse", "grafana", "ingest"}
         assert data["services"]["ingest"]["build"] == {"context": ".", "dockerfile": "ingest/Dockerfile"}
-        datasource = yaml.safe_load(datasource_text)["datasources"][0]["jsonData"]
+        provisioned = yaml.safe_load(datasource_text)["datasources"][0]
+        assert provisioned["version"] >= 2
+        datasource = provisioned["jsonData"]
+        assert datasource["protocol"] == "native" and datasource["port"] == 9000
         query_timeout = int(datasource["queryTimeout"])
         settings = {entry["setting"]: entry["value"] for entry in datasource["customSettings"]}
         execution_timeout = int(settings["max_execution_time"])
         assert int(timeout.findtext("min")) <= execution_timeout <= int(timeout.findtext("max"))
-        assert execution_timeout <= query_timeout <= int(timeout.findtext("max"))
+        # clickhouse-go can replace the setting with the context deadline + 5s.
+        assert execution_timeout <= query_timeout
+        assert query_timeout + 5 <= int(timeout.findtext("max"))
+        assert int(datasource["dialTimeout"]) + 5 <= int(timeout.findtext("max"))
         for path in (ROOT / "grafana/provisioning").rglob("*.yaml"):
             assert yaml.safe_load(path.read_text())["apiVersion"] == 1
     print("Backend artifact static checks passed; no service integration claimed")

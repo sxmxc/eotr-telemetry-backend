@@ -87,11 +87,19 @@ those accounts through an administrative session before using configuration-mana
 accounts; do not retain duplicate definitions.
 
 In Grafana, use Connections → Data sources → Telemetry ClickHouse → Save & test.
-If ClickHouse reports code 452 (`max_execution_time` greater than 60), pull the
-updated datasource provisioning and run `docker compose restart grafana`.
-The datasource explicitly sets both query timeout and the connection's
-`max_execution_time` to 30 seconds, including the initial server handshake.
-The server retains its 60-second upper bound and read-only restrictions.
+If ClickHouse reports code 452 (`max_execution_time` greater than 60) while querying
+server hello, pull the updated datasource provisioning and run
+`docker compose restart grafana`. The datasource now uses ClickHouse's **native**
+protocol on internal port **9000**, avoiding the HTTP server-hello query. Ingestion
+continues using HTTP internally. Neither ClickHouse port is published to the host.
+Datasource provisioning version 2 updates the existing datasource on startup.
+Query timeout and the custom execution setting remain 30 seconds; driver-generated
+deadline settings can add five seconds and override custom settings. Validation
+allows this margin within the server's 60-second ceiling and read-only profile.
+Confirm the effective datasource shows Native / 9000 / Query Timeout 30 in Grafana
+before using Save & test. If it still shows HTTP / 8123, inspect the mounted file
+with `docker compose exec grafana cat /etc/grafana/provisioning/datasources/clickhouse.yaml`
+and confirm it matches the pulled repository file.
 Dashboards may show **No data** until matching events arrive. The game should send
 to `http://YOUR_HOST:8080/v1/events`; `/health` checks API liveness only.
 AutoWalker records local JSONL by default and does not upload its runs.
