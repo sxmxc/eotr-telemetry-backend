@@ -10,5 +10,10 @@ datasources:
       protocol: http
       username: grafana_reader
       defaultDatabase: telemetry
+      dialTimeout: "10"
+      queryTimeout: "30"
+      customSettings:
+        - setting: max_execution_time
+          value: "30"
     secureJsonData:
       password: $CLICKHOUSE_READ_PASSWORD

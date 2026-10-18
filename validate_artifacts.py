@@ -68,6 +68,12 @@ def main():
         data = yaml.safe_load(compose)
         assert set(data["services"]) == {"clickhouse", "grafana", "ingest"}
         assert data["services"]["ingest"]["build"] == {"context": ".", "dockerfile": "ingest/Dockerfile"}
+        datasource = yaml.safe_load(datasource_text)["datasources"][0]["jsonData"]
+        query_timeout = int(datasource["queryTimeout"])
+        settings = {entry["setting"]: entry["value"] for entry in datasource["customSettings"]}
+        execution_timeout = int(settings["max_execution_time"])
+        assert int(timeout.findtext("min")) <= execution_timeout <= int(timeout.findtext("max"))
+        assert execution_timeout <= query_timeout <= int(timeout.findtext("max"))
         for path in (ROOT / "grafana/provisioning").rglob("*.yaml"):
             assert yaml.safe_load(path.read_text())["apiVersion"] == 1
     print("Backend artifact static checks passed; no service integration claimed")
