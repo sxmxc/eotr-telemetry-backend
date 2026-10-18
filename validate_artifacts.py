@@ -13,9 +13,18 @@ def main():
         dashboard = json.loads(path.read_text())
         assert {v["name"] for v in dashboard["templating"]["list"]} == {"game_id", "environment", "build_version", "source_type"}
         assert dashboard["panels"]
+        build = next(v for v in dashboard["templating"]["list"] if v["name"] == "build_version")
+        assert build["current"]["value"] == "__latest__" and "__value" in build["query"]
+        assert "max(timestamp)" in build["query"] and "${game_id:sqlstring}" in build["query"]
         for panel in dashboard["panels"]:
             query = panel["targets"][0]["rawSql"]
-            assert ("events_deduplicated" in query or "telemetry.ingest_health" in query) and "$__timeFilter" in query
+            assert "events_deduplicated" in query or "telemetry.ingest_health" in query
+            if panel["title"] != "Resolved build":
+                assert "$__timeFilter" in query
+            if panel["type"] == "timeseries":
+                assert panel["targets"][0]["format"] == 0 and "ORDER BY" in query
+            if "events_deduplicated" in query:
+                assert "'__latest__'" in query and "${build_version:sqlstring}" in query
     schemas = json.loads((ROOT / "schemas/events.json").read_text())
     assert schemas["format_version"] == 1 and len(schemas["events"]) >= 30
     migrations = list((ROOT / "clickhouse/migrations").glob("*.sql"))

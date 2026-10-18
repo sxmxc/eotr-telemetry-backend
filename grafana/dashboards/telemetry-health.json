@@ -17,252 +17,303 @@
   },
   "editable": true,
   "fiscalYearStartMonth": 0,
-  "graphTooltip": 0,
-  "id": 6,
+  "graphTooltip": 1,
   "links": [],
   "panels": [
     {
+      "id": 5,
+      "title": "Selected telemetry",
+      "type": "stat",
       "datasource": {
         "type": "grafana-clickhouse-datasource",
         "uid": "telemetry-clickhouse"
       },
+      "gridPos": {
+        "x": 0,
+        "y": 0,
+        "w": 12,
+        "h": 5
+      },
+      "description": "",
       "fieldConfig": {
         "defaults": {
+          "unit": "short",
+          "color": {
+            "mode": "palette-classic"
+          }
+        },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "editorType": "sql",
+          "queryType": "sql",
+          "format": 1,
+          "rawSql": "SELECT count() AS events, uniqExact(session_id) AS sessions FROM telemetry.events_deduplicated WHERE $__timeFilter(timestamp) AND game_id=${game_id:sqlstring} AND environment=${environment:sqlstring} AND build_version=if(${build_version:sqlstring}='__latest__', (SELECT build_version FROM telemetry.events_deduplicated WHERE game_id=${game_id:sqlstring} AND environment=${environment:sqlstring} GROUP BY build_version ORDER BY max(timestamp) DESC, build_version DESC LIMIT 1), ${build_version:sqlstring}) AND source_type=${source_type:sqlstring} AND (1) "
+        }
+      ],
+      "options": {
+        "reduceOptions": {
+          "values": false,
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": ""
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "auto",
+        "orientation": "auto"
+      }
+    },
+    {
+      "id": 6,
+      "title": "Resolved build",
+      "type": "stat",
+      "datasource": {
+        "type": "grafana-clickhouse-datasource",
+        "uid": "telemetry-clickhouse"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 0,
+        "w": 12,
+        "h": 5
+      },
+      "description": "Latest is resolved across sources for the selected game/environment, independently of the time picker. It follows the most recent event, including late uploads.",
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "color": {
+            "mode": "palette-classic"
+          }
+        },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "editorType": "sql",
+          "queryType": "sql",
+          "format": 1,
+          "rawSql": "SELECT if(${build_version:sqlstring}='__latest__', (SELECT build_version FROM telemetry.events_deduplicated WHERE game_id=${game_id:sqlstring} AND environment=${environment:sqlstring} GROUP BY build_version ORDER BY max(timestamp) DESC, build_version DESC LIMIT 1), ${build_version:sqlstring}) AS build_version"
+        }
+      ],
+      "options": {
+        "reduceOptions": {
+          "values": false,
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "/^build_version$/"
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "value",
+        "orientation": "auto"
+      }
+    },
+    {
+      "id": 1,
+      "title": "Accepted event volume over time",
+      "type": "timeseries",
+      "datasource": {
+        "type": "grafana-clickhouse-datasource",
+        "uid": "telemetry-clickhouse"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 5,
+        "w": 24,
+        "h": 8
+      },
+      "description": "Deduplicated events per adaptive time bucket; not events per second. Counts per adaptive time bucket; empty buckets have no bar.",
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
           "color": {
             "mode": "palette-classic"
           },
           "custom": {
-            "axisBorderShow": false,
-            "axisCenteredZero": false,
-            "axisColorMode": "text",
-            "axisLabel": "",
-            "axisPlacement": "auto",
-            "barAlignment": 0,
-            "barWidthFactor": 0.6,
             "drawStyle": "bars",
-            "fillOpacity": 0,
-            "gradientMode": "none",
-            "hideFrom": {
-              "legend": false,
-              "tooltip": false,
-              "viz": false
-            },
-            "insertNulls": false,
-            "lineInterpolation": "linear",
-            "lineWidth": 1,
-            "pointSize": 5,
-            "scaleDistribution": {
-              "type": "linear"
-            },
+            "lineWidth": 0,
+            "fillOpacity": 70,
             "showPoints": "auto",
-            "showValues": false,
             "spanNulls": false,
-            "stacking": {
-              "group": "A",
-              "mode": "none"
-            },
-            "thresholdsStyle": {
-              "mode": "off"
-            }
-          },
-          "mappings": [],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": 0
-              },
-              {
-                "color": "red",
-                "value": 80
-              }
-            ]
+            "axisCenteredZero": false
           }
         },
         "overrides": []
       },
-      "gridPos": {
-        "h": 9,
-        "w": 24,
-        "x": 0,
-        "y": 0
-      },
-      "id": 1,
+      "targets": [
+        {
+          "refId": "A",
+          "editorType": "sql",
+          "queryType": "sql",
+          "format": 0,
+          "rawSql": "SELECT $__timeInterval(timestamp) AS time, count() AS events FROM telemetry.events_deduplicated WHERE $__timeFilter(timestamp) AND game_id=${game_id:sqlstring} AND environment=${environment:sqlstring} AND build_version=if(${build_version:sqlstring}='__latest__', (SELECT build_version FROM telemetry.events_deduplicated WHERE game_id=${game_id:sqlstring} AND environment=${environment:sqlstring} GROUP BY build_version ORDER BY max(timestamp) DESC, build_version DESC LIMIT 1), ${build_version:sqlstring}) AND source_type=${source_type:sqlstring} AND (1) GROUP BY time ORDER BY time"
+        }
+      ],
       "options": {
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        },
         "legend": {
-          "calcs": [],
           "displayMode": "list",
           "placement": "bottom",
-          "showLegend": false
-        },
-        "tooltip": {
-          "hideZeros": false,
-          "mode": "single",
-          "sort": "none"
+          "showLegend": true
         }
       },
-      "pluginVersion": "12.2.0",
-      "targets": [
-        {
-          "editorType": "sql",
-          "format": 1,
-          "queryType": "sql",
-          "rawSql": "SELECT toStartOfHour(timestamp) AS time, count() AS events FROM telemetry.events_deduplicated WHERE $__timeFilter(timestamp) AND game_id=${game_id:sqlstring} AND environment=${environment:sqlstring} AND build_version=${build_version:sqlstring} AND source_type=${source_type:sqlstring} AND (1) GROUP BY time LIMIT 1000",
-          "refId": "A"
-        }
-      ],
-      "title": "Accepted throughput",
-      "type": "timeseries"
+      "maxDataPoints": 1000,
+      "interval": "10s"
     },
     {
-      "datasource": {
-        "type": "grafana-clickhouse-datasource",
-        "uid": "telemetry-clickhouse"
-      },
-      "fieldConfig": {
-        "defaults": {
-          "custom": {
-            "align": "auto",
-            "cellOptions": {
-              "type": "auto"
-            },
-            "footer": {
-              "reducers": []
-            },
-            "inspect": false
-          },
-          "mappings": [],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": 0
-              },
-              {
-                "color": "red",
-                "value": 80
-              }
-            ]
-          }
-        },
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 9,
-        "w": 24,
-        "x": 0,
-        "y": 9
-      },
-      "id": 2,
-      "options": {
-        "cellHeight": "sm",
-        "showHeader": true
-      },
-      "pluginVersion": "12.2.0",
-      "targets": [
-        {
-          "editorType": "sql",
-          "format": 1,
-          "queryType": "sql",
-          "rawSql": "SELECT event_name, schema_version, count() AS events FROM telemetry.events_deduplicated WHERE $__timeFilter(timestamp) AND game_id=${game_id:sqlstring} AND environment=${environment:sqlstring} AND build_version=${build_version:sqlstring} AND source_type=${source_type:sqlstring} AND (1) GROUP BY event_name, schema_version LIMIT 1000",
-          "refId": "A"
-        }
-      ],
-      "title": "Schema versions",
-      "type": "table"
-    },
-    {
-      "datasource": {
-        "type": "grafana-clickhouse-datasource",
-        "uid": "telemetry-clickhouse"
-      },
-      "fieldConfig": {
-        "defaults": {
-          "custom": {
-            "align": "auto",
-            "cellOptions": {
-              "type": "auto"
-            },
-            "footer": {
-              "reducers": []
-            },
-            "inspect": false
-          },
-          "mappings": [],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": 0
-              },
-              {
-                "color": "red",
-                "value": 80
-              }
-            ]
-          }
-        },
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 9,
-        "w": 24,
-        "x": 0,
-        "y": 18
-      },
       "id": 3,
-      "options": {
-        "cellHeight": "sm",
-        "showHeader": true
-      },
-      "pluginVersion": "12.2.0",
-      "targets": [
-        {
-          "editorType": "sql",
-          "format": 1,
-          "queryType": "sql",
-          "rawSql": "SELECT JSONExtractString(properties,'stat') AS metric, sum(JSONExtractFloat(properties,'change')) AS value FROM telemetry.events_deduplicated WHERE $__timeFilter(timestamp) AND game_id=${game_id:sqlstring} AND environment=${environment:sqlstring} AND build_version=${build_version:sqlstring} AND source_type=${source_type:sqlstring} AND (event_name='stat_changed' AND startsWith(JSONExtractString(properties,'stat'),'telemetry_')) GROUP BY metric LIMIT 1000",
-          "refId": "A"
-        }
-      ],
-      "title": "Client delivery health",
-      "type": "table"
-    },
-    {
+      "title": "Client delivery counters in selected range",
+      "type": "bargauge",
       "datasource": {
         "type": "grafana-clickhouse-datasource",
         "uid": "telemetry-clickhouse"
       },
+      "gridPos": {
+        "x": 0,
+        "y": 13,
+        "w": 12,
+        "h": 8
+      },
+      "description": "",
       "fieldConfig": {
-        "defaults": {},
+        "defaults": {
+          "unit": "short",
+          "color": {
+            "mode": "palette-classic"
+          },
+          "min": 0
+        },
         "overrides": []
       },
-      "gridPos": {
-        "h": 9,
-        "w": 24,
-        "x": 0,
-        "y": 27
-      },
-      "id": 4,
-      "options": {},
       "targets": [
         {
+          "refId": "A",
           "editorType": "sql",
-          "format": 1,
           "queryType": "sql",
-          "rawSql": "SELECT timestamp, requests, accepted, rejected, rate_limited, storage_failures FROM telemetry.ingest_health WHERE $__timeFilter(timestamp) ORDER BY timestamp DESC LIMIT 1000",
-          "refId": "A"
+          "format": 1,
+          "rawSql": "SELECT JSONExtractString(properties,'stat') AS metric, sum(JSONExtractFloat(properties,'change')) AS value FROM telemetry.events_deduplicated WHERE $__timeFilter(timestamp) AND game_id=${game_id:sqlstring} AND environment=${environment:sqlstring} AND build_version=if(${build_version:sqlstring}='__latest__', (SELECT build_version FROM telemetry.events_deduplicated WHERE game_id=${game_id:sqlstring} AND environment=${environment:sqlstring} GROUP BY build_version ORDER BY max(timestamp) DESC, build_version DESC LIMIT 1), ${build_version:sqlstring}) AND source_type=${source_type:sqlstring} AND (event_name='stat_changed' AND startsWith(JSONExtractString(properties,'stat'),'telemetry_')) GROUP BY metric ORDER BY value DESC, metric LIMIT 20"
         }
       ],
-      "title": "API rejection, rate-limit and storage counters (global server totals)",
-      "type": "table"
+      "options": {
+        "orientation": "horizontal",
+        "displayMode": "gradient",
+        "showUnfilled": true,
+        "reduceOptions": {
+          "values": true,
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "limit": 20
+        }
+      }
+    },
+    {
+      "id": 2,
+      "title": "Event schema versions",
+      "type": "table",
+      "datasource": {
+        "type": "grafana-clickhouse-datasource",
+        "uid": "telemetry-clickhouse"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 13,
+        "w": 12,
+        "h": 8
+      },
+      "description": "",
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": {
+            "mode": "palette-classic"
+          }
+        },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "editorType": "sql",
+          "queryType": "sql",
+          "format": 1,
+          "rawSql": "SELECT event_name, schema_version, count() AS events FROM telemetry.events_deduplicated WHERE $__timeFilter(timestamp) AND game_id=${game_id:sqlstring} AND environment=${environment:sqlstring} AND build_version=if(${build_version:sqlstring}='__latest__', (SELECT build_version FROM telemetry.events_deduplicated WHERE game_id=${game_id:sqlstring} AND environment=${environment:sqlstring} GROUP BY build_version ORDER BY max(timestamp) DESC, build_version DESC LIMIT 1), ${build_version:sqlstring}) AND source_type=${source_type:sqlstring} AND (1) GROUP BY event_name, schema_version ORDER BY events DESC, event_name, schema_version LIMIT 1000"
+        }
+      ],
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm",
+        "sortBy": []
+      }
+    },
+    {
+      "id": 4,
+      "title": "Ingestion counters — global process totals",
+      "type": "timeseries",
+      "datasource": {
+        "type": "grafana-clickhouse-datasource",
+        "uid": "telemetry-clickhouse"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 21,
+        "w": 24,
+        "h": 8
+      },
+      "description": "Global cumulative process counters; ignores game/build/source filters. Drops indicate process resets. Requests count batches; accepted counts events. Values are raw snapshots, never summed.",
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 12,
+            "showPoints": "always",
+            "spanNulls": false,
+            "axisCenteredZero": false
+          }
+        },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "editorType": "sql",
+          "queryType": "sql",
+          "format": 0,
+          "rawSql": "SELECT timestamp AS time, requests, accepted, rejected, rate_limited, storage_failures FROM telemetry.ingest_health WHERE $__timeFilter(timestamp) ORDER BY timestamp"
+        }
+      ],
+      "options": {
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        },
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        }
+      },
+      "maxDataPoints": 1000,
+      "interval": "10s"
     }
   ],
   "preload": false,
-  "refresh": "",
+  "refresh": "30s",
   "schemaVersion": 42,
   "tags": [
     "telemetry",
@@ -283,7 +334,8 @@
         "name": "game_id",
         "query": "SELECT DISTINCT game_id FROM telemetry.events_deduplicated ORDER BY game_id",
         "refresh": 1,
-        "type": "query"
+        "type": "query",
+        "multi": false
       },
       {
         "current": {
@@ -298,12 +350,13 @@
         "name": "environment",
         "query": "SELECT DISTINCT environment FROM telemetry.events_deduplicated ORDER BY environment",
         "refresh": 1,
-        "type": "query"
+        "type": "query",
+        "multi": false
       },
       {
         "current": {
-          "text": "0.0.7.0",
-          "value": "0.0.7.0"
+          "text": "Latest reporting build",
+          "value": "__latest__"
         },
         "datasource": {
           "type": "grafana-clickhouse-datasource",
@@ -311,9 +364,13 @@
         },
         "includeAll": false,
         "name": "build_version",
-        "query": "SELECT DISTINCT build_version FROM telemetry.events_deduplicated ORDER BY build_version",
+        "query": "SELECT 'Latest reporting build' AS __text, '__latest__' AS __value UNION ALL SELECT build_version AS __text, build_version AS __value FROM (SELECT build_version, max(timestamp) AS last_seen FROM telemetry.events_deduplicated WHERE game_id=${game_id:sqlstring} AND environment=${environment:sqlstring} GROUP BY build_version ORDER BY last_seen DESC, build_version DESC)",
         "refresh": 1,
-        "type": "query"
+        "type": "query",
+        "multi": false,
+        "label": "Build",
+        "sort": 0,
+        "description": "Latest event timestamp for this game/environment, across sources and outside the time picker. Select a version to pin history."
       },
       {
         "current": {
@@ -328,7 +385,8 @@
         "name": "source_type",
         "query": "SELECT DISTINCT source_type FROM telemetry.events_deduplicated ORDER BY source_type",
         "refresh": 1,
-        "type": "query"
+        "type": "query",
+        "multi": false
       }
     ]
   },
@@ -340,5 +398,5 @@
   "timezone": "",
   "title": "Telemetry Health",
   "uid": "telemetry-health",
-  "version": 1
+  "description": "Defaults to the latest reporting build for the selected game/environment, across sources. Historical builds remain selectable. Panels respect the selected time range and source unless labeled global."
 }

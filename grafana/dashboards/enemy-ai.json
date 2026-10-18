@@ -2,7 +2,6 @@
   "uid": "enemy-ai",
   "title": "Enemy AI",
   "schemaVersion": 39,
-  "version": 1,
   "editable": false,
   "tags": [
     "telemetry",
@@ -53,14 +52,17 @@
           "type": "grafana-clickhouse-datasource",
           "uid": "telemetry-clickhouse"
         },
-        "query": "SELECT DISTINCT build_version FROM telemetry.events_deduplicated ORDER BY build_version",
+        "query": "SELECT 'Latest reporting build' AS __text, '__latest__' AS __value UNION ALL SELECT build_version AS __text, build_version AS __value FROM (SELECT build_version, max(timestamp) AS last_seen FROM telemetry.events_deduplicated WHERE game_id=${game_id:sqlstring} AND environment=${environment:sqlstring} GROUP BY build_version ORDER BY last_seen DESC, build_version DESC)",
         "refresh": 1,
         "multi": false,
         "includeAll": false,
         "current": {
-          "text": "0.0.7.0",
-          "value": "0.0.7.0"
-        }
+          "text": "Latest reporting build",
+          "value": "__latest__"
+        },
+        "label": "Build",
+        "sort": 0,
+        "description": "Latest event timestamp for this game/environment, across sources and outside the time picker. Select a version to pin history."
       },
       {
         "name": "source_type",
@@ -82,76 +84,307 @@
   },
   "panels": [
     {
-      "id": 1,
-      "title": "Enemy actions and fallbacks",
-      "type": "table",
+      "id": 3,
+      "title": "AI evaluation duration",
+      "type": "stat",
+      "datasource": {
+        "type": "grafana-clickhouse-datasource",
+        "uid": "telemetry-clickhouse"
+      },
       "gridPos": {
         "x": 0,
         "y": 0,
-        "w": 24,
-        "h": 9
+        "w": 12,
+        "h": 5
       },
-      "datasource": {
-        "type": "grafana-clickhouse-datasource",
-        "uid": "telemetry-clickhouse"
+      "description": "",
+      "fieldConfig": {
+        "defaults": {
+          "unit": "µs",
+          "color": {
+            "mode": "palette-classic"
+          }
+        },
+        "overrides": []
       },
       "targets": [
         {
           "refId": "A",
-          "queryType": "sql",
           "editorType": "sql",
+          "queryType": "sql",
           "format": 1,
-          "rawSql": "SELECT JSONExtractString(properties,'enemy') AS enemy, event_name, count() AS actions FROM telemetry.events_deduplicated WHERE $__timeFilter(timestamp) AND game_id=${game_id:sqlstring} AND environment=${environment:sqlstring} AND build_version=${build_version:sqlstring} AND source_type=${source_type:sqlstring} AND (event_name IN ('enemy_action','enemy_waited')) GROUP BY enemy, event_name LIMIT 1000"
+          "rawSql": "SELECT avgOrNull(JSONExtractFloat(properties,'evaluation_us')) AS mean, quantileOrNull(0.95)(JSONExtractFloat(properties,'evaluation_us')) AS p95 FROM telemetry.events_deduplicated WHERE $__timeFilter(timestamp) AND game_id=${game_id:sqlstring} AND environment=${environment:sqlstring} AND build_version=if(${build_version:sqlstring}='__latest__', (SELECT build_version FROM telemetry.events_deduplicated WHERE game_id=${game_id:sqlstring} AND environment=${environment:sqlstring} GROUP BY build_version ORDER BY max(timestamp) DESC, build_version DESC LIMIT 1), ${build_version:sqlstring}) AND source_type=${source_type:sqlstring} AND (event_name='enemy_action') "
         }
-      ]
+      ],
+      "options": {
+        "reduceOptions": {
+          "values": false,
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": ""
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "auto",
+        "orientation": "auto"
+      }
+    },
+    {
+      "id": 4,
+      "title": "AI activity",
+      "type": "stat",
+      "datasource": {
+        "type": "grafana-clickhouse-datasource",
+        "uid": "telemetry-clickhouse"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 0,
+        "w": 12,
+        "h": 5
+      },
+      "description": "",
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": {
+            "mode": "palette-classic"
+          }
+        },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "editorType": "sql",
+          "queryType": "sql",
+          "format": 1,
+          "rawSql": "SELECT countIf(event_name='enemy_action') AS actions, countIf(event_name='enemy_waited') AS waits FROM telemetry.events_deduplicated WHERE $__timeFilter(timestamp) AND game_id=${game_id:sqlstring} AND environment=${environment:sqlstring} AND build_version=if(${build_version:sqlstring}='__latest__', (SELECT build_version FROM telemetry.events_deduplicated WHERE game_id=${game_id:sqlstring} AND environment=${environment:sqlstring} GROUP BY build_version ORDER BY max(timestamp) DESC, build_version DESC LIMIT 1), ${build_version:sqlstring}) AND source_type=${source_type:sqlstring} AND (event_name IN ('enemy_action','enemy_waited')) "
+        }
+      ],
+      "options": {
+        "reduceOptions": {
+          "values": false,
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": ""
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "auto",
+        "orientation": "auto"
+      }
+    },
+    {
+      "id": 1,
+      "title": "Enemy actions and waits",
+      "type": "barchart",
+      "datasource": {
+        "type": "grafana-clickhouse-datasource",
+        "uid": "telemetry-clickhouse"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 5,
+        "w": 12,
+        "h": 8
+      },
+      "description": "",
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": {
+            "mode": "palette-classic"
+          },
+          "min": 0
+        },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "editorType": "sql",
+          "queryType": "sql",
+          "format": 1,
+          "rawSql": "SELECT concat(JSONExtractString(properties,'enemy'), ' / ', event_name) AS enemy_action, count() AS actions FROM telemetry.events_deduplicated WHERE $__timeFilter(timestamp) AND game_id=${game_id:sqlstring} AND environment=${environment:sqlstring} AND build_version=if(${build_version:sqlstring}='__latest__', (SELECT build_version FROM telemetry.events_deduplicated WHERE game_id=${game_id:sqlstring} AND environment=${environment:sqlstring} GROUP BY build_version ORDER BY max(timestamp) DESC, build_version DESC LIMIT 1), ${build_version:sqlstring}) AND source_type=${source_type:sqlstring} AND (event_name IN ('enemy_action','enemy_waited')) GROUP BY enemy_action ORDER BY actions DESC, enemy_action LIMIT 30"
+        }
+      ],
+      "options": {
+        "orientation": "horizontal",
+        "showValue": "always",
+        "stacking": "none",
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": false
+        },
+        "tooltip": {
+          "mode": "multi"
+        }
+      }
     },
     {
       "id": 2,
-      "title": "Simulation stalls and invalid actions",
-      "type": "table",
-      "gridPos": {
-        "x": 0,
-        "y": 9,
-        "w": 24,
-        "h": 9
-      },
+      "title": "Technical failures by outcome",
+      "type": "bargauge",
       "datasource": {
         "type": "grafana-clickhouse-datasource",
         "uid": "telemetry-clickhouse"
       },
+      "gridPos": {
+        "x": 12,
+        "y": 5,
+        "w": 12,
+        "h": 8
+      },
+      "description": "",
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": {
+            "mode": "palette-classic"
+          },
+          "min": 0
+        },
+        "overrides": []
+      },
       "targets": [
         {
           "refId": "A",
-          "queryType": "sql",
           "editorType": "sql",
+          "queryType": "sql",
           "format": 1,
-          "rawSql": "SELECT JSONExtractString(properties,'outcome') AS outcome, count() AS failures FROM telemetry.events_deduplicated WHERE $__timeFilter(timestamp) AND game_id=${game_id:sqlstring} AND environment=${environment:sqlstring} AND build_version=${build_version:sqlstring} AND source_type=${source_type:sqlstring} AND (event_name='simulation_completed' AND JSONExtractString(properties,'outcome') IN ('softlock','invalid_action','timeout')) GROUP BY outcome LIMIT 1000"
+          "rawSql": "SELECT JSONExtractString(properties,'outcome') AS outcome, count() AS failures FROM telemetry.events_deduplicated WHERE $__timeFilter(timestamp) AND game_id=${game_id:sqlstring} AND environment=${environment:sqlstring} AND build_version=if(${build_version:sqlstring}='__latest__', (SELECT build_version FROM telemetry.events_deduplicated WHERE game_id=${game_id:sqlstring} AND environment=${environment:sqlstring} GROUP BY build_version ORDER BY max(timestamp) DESC, build_version DESC LIMIT 1), ${build_version:sqlstring}) AND source_type=${source_type:sqlstring} AND (event_name='simulation_completed' AND JSONExtractString(properties,'outcome') IN ('softlock','invalid_action','timeout')) GROUP BY outcome ORDER BY failures DESC"
         }
-      ]
+      ],
+      "options": {
+        "orientation": "horizontal",
+        "displayMode": "gradient",
+        "showUnfilled": true,
+        "reduceOptions": {
+          "values": true,
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "limit": 20
+        }
+      }
     },
     {
-      "id": 3,
-      "title": "AI duration",
-      "type": "table",
-      "gridPos": {
-        "x": 0,
-        "y": 18,
-        "w": 24,
-        "h": 9
-      },
+      "id": 5,
+      "title": "AI evaluation duration over time",
+      "type": "timeseries",
       "datasource": {
         "type": "grafana-clickhouse-datasource",
         "uid": "telemetry-clickhouse"
       },
+      "gridPos": {
+        "x": 0,
+        "y": 13,
+        "w": 12,
+        "h": 8
+      },
+      "description": "",
+      "fieldConfig": {
+        "defaults": {
+          "unit": "µs",
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 12,
+            "showPoints": "always",
+            "spanNulls": false,
+            "axisCenteredZero": false
+          }
+        },
+        "overrides": []
+      },
       "targets": [
         {
           "refId": "A",
-          "queryType": "sql",
           "editorType": "sql",
-          "format": 1,
-          "rawSql": "SELECT avg(JSONExtractFloat(properties,'evaluation_us')) AS mean_us, quantile(0.95)(JSONExtractFloat(properties,'evaluation_us')) AS p95_us FROM telemetry.events_deduplicated WHERE $__timeFilter(timestamp) AND game_id=${game_id:sqlstring} AND environment=${environment:sqlstring} AND build_version=${build_version:sqlstring} AND source_type=${source_type:sqlstring} AND (event_name='enemy_action') LIMIT 1000"
+          "queryType": "sql",
+          "format": 0,
+          "rawSql": "SELECT $__timeInterval(timestamp) AS time, avg(JSONExtractFloat(properties,'evaluation_us')) AS mean, quantile(0.95)(JSONExtractFloat(properties,'evaluation_us')) AS p95 FROM telemetry.events_deduplicated WHERE $__timeFilter(timestamp) AND game_id=${game_id:sqlstring} AND environment=${environment:sqlstring} AND build_version=if(${build_version:sqlstring}='__latest__', (SELECT build_version FROM telemetry.events_deduplicated WHERE game_id=${game_id:sqlstring} AND environment=${environment:sqlstring} GROUP BY build_version ORDER BY max(timestamp) DESC, build_version DESC LIMIT 1), ${build_version:sqlstring}) AND source_type=${source_type:sqlstring} AND (event_name='enemy_action') GROUP BY time ORDER BY time"
         }
-      ]
+      ],
+      "options": {
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        },
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        }
+      },
+      "maxDataPoints": 1000,
+      "interval": "10s"
+    },
+    {
+      "id": 6,
+      "title": "Actions and waits over time",
+      "type": "timeseries",
+      "datasource": {
+        "type": "grafana-clickhouse-datasource",
+        "uid": "telemetry-clickhouse"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 13,
+        "w": 12,
+        "h": 8
+      },
+      "description": "Counts per adaptive time bucket; empty buckets have no bar.",
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "drawStyle": "bars",
+            "lineWidth": 0,
+            "fillOpacity": 70,
+            "showPoints": "auto",
+            "spanNulls": false,
+            "axisCenteredZero": false
+          }
+        },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "editorType": "sql",
+          "queryType": "sql",
+          "format": 0,
+          "rawSql": "SELECT $__timeInterval(timestamp) AS time, event_name, count() AS actions FROM telemetry.events_deduplicated WHERE $__timeFilter(timestamp) AND game_id=${game_id:sqlstring} AND environment=${environment:sqlstring} AND build_version=if(${build_version:sqlstring}='__latest__', (SELECT build_version FROM telemetry.events_deduplicated WHERE game_id=${game_id:sqlstring} AND environment=${environment:sqlstring} GROUP BY build_version ORDER BY max(timestamp) DESC, build_version DESC LIMIT 1), ${build_version:sqlstring}) AND source_type=${source_type:sqlstring} AND (event_name IN ('enemy_action','enemy_waited')) GROUP BY time, event_name ORDER BY time, event_name"
+        }
+      ],
+      "options": {
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        },
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        }
+      },
+      "maxDataPoints": 1000,
+      "interval": "10s"
     }
-  ]
+  ],
+  "refresh": "30s",
+  "graphTooltip": 1,
+  "description": "Defaults to the latest reporting build for the selected game/environment, across sources. Historical builds remain selectable. Panels respect the selected time range and source unless labeled global."
 }

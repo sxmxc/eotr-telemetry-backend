@@ -2,7 +2,6 @@
   "uid": "combat-balance",
   "title": "Combat Balance",
   "schemaVersion": 39,
-  "version": 2,
   "editable": false,
   "tags": [
     "telemetry",
@@ -53,14 +52,17 @@
           "type": "grafana-clickhouse-datasource",
           "uid": "telemetry-clickhouse"
         },
-        "query": "SELECT DISTINCT build_version FROM telemetry.events_deduplicated ORDER BY build_version",
+        "query": "SELECT 'Latest reporting build' AS __text, '__latest__' AS __value UNION ALL SELECT build_version AS __text, build_version AS __value FROM (SELECT build_version, max(timestamp) AS last_seen FROM telemetry.events_deduplicated WHERE game_id=${game_id:sqlstring} AND environment=${environment:sqlstring} GROUP BY build_version ORDER BY last_seen DESC, build_version DESC)",
         "refresh": 1,
         "multi": false,
         "includeAll": false,
         "current": {
-          "text": "0.0.7.0",
-          "value": "0.0.7.0"
-        }
+          "text": "Latest reporting build",
+          "value": "__latest__"
+        },
+        "label": "Build",
+        "sort": 0,
+        "description": "Latest event timestamp for this game/environment, across sources and outside the time picker. Select a version to pin history."
       },
       {
         "name": "source_type",
@@ -82,76 +84,243 @@
   },
   "panels": [
     {
-      "id": 1,
-      "title": "Encounter outcomes and damage",
-      "type": "table",
+      "id": 3,
+      "title": "Obelisk destruction",
+      "type": "stat",
+      "datasource": {
+        "type": "grafana-clickhouse-datasource",
+        "uid": "telemetry-clickhouse"
+      },
       "gridPos": {
         "x": 0,
         "y": 0,
-        "w": 24,
-        "h": 9
+        "w": 12,
+        "h": 5
       },
-      "datasource": {
-        "type": "grafana-clickhouse-datasource",
-        "uid": "telemetry-clickhouse"
+      "description": "",
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": {
+            "mode": "palette-classic"
+          }
+        },
+        "overrides": []
       },
       "targets": [
         {
           "refId": "A",
-          "queryType": "sql",
           "editorType": "sql",
+          "queryType": "sql",
           "format": 1,
-          "rawSql": "SELECT JSONExtractString(properties,'encounter') AS encounter, count() AS battles, avg(JSONExtractInt(properties,'turns')) AS turns, avg(JSONExtractInt(properties,'damage_taken')) AS health_damage, avg(JSONExtractInt(properties,'net_health_loss')) AS net_health_loss, avg(JSONExtractInt(properties,'healing_received')) AS healing FROM telemetry.events_deduplicated WHERE $__timeFilter(timestamp) AND game_id=${game_id:sqlstring} AND environment=${environment:sqlstring} AND build_version=${build_version:sqlstring} AND source_type=${source_type:sqlstring} AND (event_name='encounter_completed' AND schema_version=2) GROUP BY encounter LIMIT 1000"
+          "rawSql": "SELECT avgOrNull(JSONExtractInt(properties,'turn')) AS destruction_turn, avgOrNull(JSONExtractInt(properties,'remaining')) AS remaining_enemies FROM telemetry.events_deduplicated WHERE $__timeFilter(timestamp) AND game_id=${game_id:sqlstring} AND environment=${environment:sqlstring} AND build_version=if(${build_version:sqlstring}='__latest__', (SELECT build_version FROM telemetry.events_deduplicated WHERE game_id=${game_id:sqlstring} AND environment=${environment:sqlstring} GROUP BY build_version ORDER BY max(timestamp) DESC, build_version DESC LIMIT 1), ${build_version:sqlstring}) AND source_type=${source_type:sqlstring} AND (event_name='obelisk_destroyed') "
         }
-      ]
+      ],
+      "options": {
+        "reduceOptions": {
+          "values": false,
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": ""
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "auto",
+        "orientation": "auto"
+      }
+    },
+    {
+      "id": 4,
+      "title": "Completed battles (v2)",
+      "type": "stat",
+      "datasource": {
+        "type": "grafana-clickhouse-datasource",
+        "uid": "telemetry-clickhouse"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 0,
+        "w": 12,
+        "h": 5
+      },
+      "description": "",
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": {
+            "mode": "palette-classic"
+          }
+        },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "editorType": "sql",
+          "queryType": "sql",
+          "format": 1,
+          "rawSql": "SELECT count() AS battles FROM telemetry.events_deduplicated WHERE $__timeFilter(timestamp) AND game_id=${game_id:sqlstring} AND environment=${environment:sqlstring} AND build_version=if(${build_version:sqlstring}='__latest__', (SELECT build_version FROM telemetry.events_deduplicated WHERE game_id=${game_id:sqlstring} AND environment=${environment:sqlstring} GROUP BY build_version ORDER BY max(timestamp) DESC, build_version DESC LIMIT 1), ${build_version:sqlstring}) AND source_type=${source_type:sqlstring} AND (event_name='encounter_completed' AND schema_version=2) "
+        }
+      ],
+      "options": {
+        "reduceOptions": {
+          "values": false,
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": ""
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "auto",
+        "orientation": "auto"
+      }
     },
     {
       "id": 2,
-      "title": "Card usage",
-      "type": "table",
-      "gridPos": {
-        "x": 0,
-        "y": 9,
-        "w": 24,
-        "h": 9
-      },
+      "title": "Most played cards",
+      "type": "bargauge",
       "datasource": {
         "type": "grafana-clickhouse-datasource",
         "uid": "telemetry-clickhouse"
       },
+      "gridPos": {
+        "x": 0,
+        "y": 5,
+        "w": 12,
+        "h": 8
+      },
+      "description": "",
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": {
+            "mode": "palette-classic"
+          },
+          "min": 0
+        },
+        "overrides": []
+      },
       "targets": [
         {
           "refId": "A",
-          "queryType": "sql",
           "editorType": "sql",
+          "queryType": "sql",
           "format": 1,
-          "rawSql": "SELECT JSONExtractString(properties,'card_name') AS card, count() AS plays FROM telemetry.events_deduplicated WHERE $__timeFilter(timestamp) AND game_id=${game_id:sqlstring} AND environment=${environment:sqlstring} AND build_version=${build_version:sqlstring} AND source_type=${source_type:sqlstring} AND (event_name='card_played') GROUP BY card LIMIT 1000"
+          "rawSql": "SELECT JSONExtractString(properties,'card_name') AS card, count() AS plays FROM telemetry.events_deduplicated WHERE $__timeFilter(timestamp) AND game_id=${game_id:sqlstring} AND environment=${environment:sqlstring} AND build_version=if(${build_version:sqlstring}='__latest__', (SELECT build_version FROM telemetry.events_deduplicated WHERE game_id=${game_id:sqlstring} AND environment=${environment:sqlstring} GROUP BY build_version ORDER BY max(timestamp) DESC, build_version DESC LIMIT 1), ${build_version:sqlstring}) AND source_type=${source_type:sqlstring} AND (event_name='card_played') GROUP BY card ORDER BY plays DESC, card LIMIT 20"
         }
-      ]
+      ],
+      "options": {
+        "orientation": "horizontal",
+        "displayMode": "gradient",
+        "showUnfilled": true,
+        "reduceOptions": {
+          "values": true,
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "limit": 20
+        }
+      }
     },
     {
-      "id": 3,
-      "title": "Obelisk timing and remaining enemies",
-      "type": "table",
-      "gridPos": {
-        "x": 0,
-        "y": 18,
-        "w": 24,
-        "h": 9
-      },
+      "id": 5,
+      "title": "Encounter health damage over time (v2)",
+      "type": "timeseries",
       "datasource": {
         "type": "grafana-clickhouse-datasource",
         "uid": "telemetry-clickhouse"
       },
+      "gridPos": {
+        "x": 12,
+        "y": 5,
+        "w": 12,
+        "h": 8
+      },
+      "description": "",
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 12,
+            "showPoints": "always",
+            "spanNulls": false,
+            "axisCenteredZero": false
+          }
+        },
+        "overrides": []
+      },
       "targets": [
         {
           "refId": "A",
-          "queryType": "sql",
           "editorType": "sql",
-          "format": 1,
-          "rawSql": "SELECT avg(JSONExtractInt(properties,'turn')) AS destruction_turn, avg(JSONExtractInt(properties,'remaining')) AS remaining FROM telemetry.events_deduplicated WHERE $__timeFilter(timestamp) AND game_id=${game_id:sqlstring} AND environment=${environment:sqlstring} AND build_version=${build_version:sqlstring} AND source_type=${source_type:sqlstring} AND (event_name='obelisk_destroyed') LIMIT 1000"
+          "queryType": "sql",
+          "format": 0,
+          "rawSql": "SELECT $__timeInterval(timestamp) AS time, JSONExtractString(properties,'encounter') AS encounter, avg(JSONExtractInt(properties,'damage_taken')) AS health_damage FROM telemetry.events_deduplicated WHERE $__timeFilter(timestamp) AND game_id=${game_id:sqlstring} AND environment=${environment:sqlstring} AND build_version=if(${build_version:sqlstring}='__latest__', (SELECT build_version FROM telemetry.events_deduplicated WHERE game_id=${game_id:sqlstring} AND environment=${environment:sqlstring} GROUP BY build_version ORDER BY max(timestamp) DESC, build_version DESC LIMIT 1), ${build_version:sqlstring}) AND source_type=${source_type:sqlstring} AND (event_name='encounter_completed' AND schema_version=2) GROUP BY time, encounter ORDER BY time, encounter"
         }
-      ]
+      ],
+      "options": {
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        },
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        }
+      },
+      "maxDataPoints": 1000,
+      "interval": "10s"
+    },
+    {
+      "id": 1,
+      "title": "Encounter damage and healing detail (v2)",
+      "type": "table",
+      "datasource": {
+        "type": "grafana-clickhouse-datasource",
+        "uid": "telemetry-clickhouse"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 13,
+        "w": 24,
+        "h": 8
+      },
+      "description": "V2 only: damage, net loss and healing have distinct meanings. V1 lacks these metrics.",
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": {
+            "mode": "palette-classic"
+          }
+        },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "editorType": "sql",
+          "queryType": "sql",
+          "format": 1,
+          "rawSql": "SELECT JSONExtractString(properties,'encounter') AS encounter, count() AS battles, avg(JSONExtractInt(properties,'turns')) AS turns, avg(JSONExtractInt(properties,'damage_taken')) AS health_damage, avg(JSONExtractInt(properties,'net_health_loss')) AS net_health_loss, avg(JSONExtractInt(properties,'healing_received')) AS healing FROM telemetry.events_deduplicated WHERE $__timeFilter(timestamp) AND game_id=${game_id:sqlstring} AND environment=${environment:sqlstring} AND build_version=if(${build_version:sqlstring}='__latest__', (SELECT build_version FROM telemetry.events_deduplicated WHERE game_id=${game_id:sqlstring} AND environment=${environment:sqlstring} GROUP BY build_version ORDER BY max(timestamp) DESC, build_version DESC LIMIT 1), ${build_version:sqlstring}) AND source_type=${source_type:sqlstring} AND (event_name='encounter_completed' AND schema_version=2) GROUP BY encounter ORDER BY battles DESC LIMIT 100"
+        }
+      ],
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm",
+        "sortBy": []
+      }
     }
-  ]
+  ],
+  "refresh": "30s",
+  "graphTooltip": 1,
+  "description": "Defaults to the latest reporting build for the selected game/environment, across sources. Historical builds remain selectable. Panels respect the selected time range and source unless labeled global."
 }

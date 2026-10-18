@@ -17,125 +17,211 @@
   },
   "editable": true,
   "fiscalYearStartMonth": 0,
-  "graphTooltip": 0,
-  "id": 2,
+  "graphTooltip": 1,
   "links": [],
   "panels": [
     {
+      "id": 4,
+      "title": "Completed simulations",
+      "type": "stat",
       "datasource": {
         "type": "grafana-clickhouse-datasource",
         "uid": "telemetry-clickhouse"
       },
+      "gridPos": {
+        "x": 0,
+        "y": 0,
+        "w": 18,
+        "h": 5
+      },
+      "description": "Counts completion events; ordinary gameplay losses are separate from timeouts, softlocks and invalid actions.",
       "fieldConfig": {
         "defaults": {
-          "custom": {
-            "align": "auto",
-            "cellOptions": {
-              "type": "auto"
+          "unit": "short",
+          "color": {
+            "mode": "palette-classic"
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "completed"
             },
-            "footer": {
-              "reducers": []
-            },
-            "inspect": false
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "blue"
+                }
+              }
+            ]
           },
-          "mappings": [],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "wins"
+            },
+            "properties": [
               {
-                "color": "green",
-                "value": 0
-              },
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "green"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "losses"
+            },
+            "properties": [
               {
-                "color": "red",
-                "value": 80
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "orange"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "technical_failures"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "red"
+                }
               }
             ]
           }
-        },
-        "overrides": []
+        ]
       },
-      "gridPos": {
-        "h": 9,
-        "w": 24,
-        "x": 0,
-        "y": 0
-      },
-      "id": 1,
-      "options": {
-        "cellHeight": "sm",
-        "showHeader": true
-      },
-      "pluginVersion": "12.2.0",
       "targets": [
         {
+          "refId": "A",
           "editorType": "sql",
-          "format": 1,
           "queryType": "sql",
-          "rawSql": "SELECT build_version, schema_version AS metrics_schema, JSONExtractString(properties,'mode') AS mode, JSONExtractString(properties,'policy') AS policy, JSONExtractString(properties,'outcome') AS outcome, count() AS simulations, avg(JSONExtractInt(properties,'turns')) AS turns, avg(JSONExtractInt(properties,'duration_ms')) AS duration_ms FROM telemetry.events_deduplicated WHERE $__timeFilter(timestamp) AND game_id=${game_id:sqlstring} AND environment=${environment:sqlstring} AND build_version=${build_version:sqlstring} AND source_type=${source_type:sqlstring} AND (event_name='simulation_completed') GROUP BY build_version, metrics_schema, mode, policy, outcome LIMIT 1000",
-          "refId": "A"
+          "format": 1,
+          "rawSql": "SELECT count() AS completed, countIf(JSONExtractString(properties,'outcome')='win') AS wins, countIf(JSONExtractString(properties,'outcome')='loss') AS losses, countIf(JSONExtractString(properties,'outcome') IN ('softlock','invalid_action','timeout')) AS technical_failures FROM telemetry.events_deduplicated WHERE $__timeFilter(timestamp) AND game_id=${game_id:sqlstring} AND environment=${environment:sqlstring} AND build_version=if(${build_version:sqlstring}='__latest__', (SELECT build_version FROM telemetry.events_deduplicated WHERE game_id=${game_id:sqlstring} AND environment=${environment:sqlstring} GROUP BY build_version ORDER BY max(timestamp) DESC, build_version DESC LIMIT 1), ${build_version:sqlstring}) AND source_type=${source_type:sqlstring} AND (event_name='simulation_completed') "
         }
       ],
-      "title": "Outcomes by policy and build",
-      "type": "table"
+      "options": {
+        "reduceOptions": {
+          "values": false,
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": ""
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "auto",
+        "orientation": "auto"
+      }
     },
     {
+      "id": 5,
+      "title": "Seed coverage",
+      "type": "stat",
       "datasource": {
         "type": "grafana-clickhouse-datasource",
         "uid": "telemetry-clickhouse"
       },
+      "gridPos": {
+        "x": 18,
+        "y": 0,
+        "w": 6,
+        "h": 5
+      },
+      "description": "Distinct completed seeds across policies. Repeated seeds do not increase coverage.",
       "fieldConfig": {
         "defaults": {
-          "custom": {
-            "align": "auto",
-            "cellOptions": {
-              "type": "auto"
-            },
-            "footer": {
-              "reducers": []
-            },
-            "inspect": false
-          },
-          "mappings": [],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": 0
-              },
-              {
-                "color": "red",
-                "value": 80
-              }
-            ]
+          "unit": "short",
+          "color": {
+            "mode": "palette-classic"
           }
         },
         "overrides": []
       },
-      "gridPos": {
-        "h": 9,
-        "w": 24,
-        "x": 0,
-        "y": 9
-      },
-      "id": 2,
-      "options": {
-        "cellHeight": "sm",
-        "showHeader": true
-      },
-      "pluginVersion": "12.2.0",
       "targets": [
         {
+          "refId": "A",
           "editorType": "sql",
-          "format": 1,
           "queryType": "sql",
-          "rawSql": "SELECT run_id, JSONExtractInt(properties,'seed') AS seed, JSONExtractString(properties,'outcome') AS outcome FROM telemetry.events_deduplicated WHERE $__timeFilter(timestamp) AND game_id=${game_id:sqlstring} AND environment=${environment:sqlstring} AND build_version=${build_version:sqlstring} AND source_type=${source_type:sqlstring} AND (event_name='simulation_completed' AND JSONExtractString(properties,'outcome') NOT IN ('win','loss','aborted','replay_complete')) GROUP BY run_id, seed, outcome LIMIT 1000",
-          "refId": "A"
+          "format": 1,
+          "rawSql": "SELECT uniqExact(JSONExtractInt(properties,'seed')) AS distinct_seeds FROM telemetry.events_deduplicated WHERE $__timeFilter(timestamp) AND game_id=${game_id:sqlstring} AND environment=${environment:sqlstring} AND build_version=if(${build_version:sqlstring}='__latest__', (SELECT build_version FROM telemetry.events_deduplicated WHERE game_id=${game_id:sqlstring} AND environment=${environment:sqlstring} GROUP BY build_version ORDER BY max(timestamp) DESC, build_version DESC LIMIT 1), ${build_version:sqlstring}) AND source_type=${source_type:sqlstring} AND (event_name='simulation_completed') "
         }
       ],
-      "title": "Failure seeds",
-      "type": "table"
+      "options": {
+        "reduceOptions": {
+          "values": false,
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": ""
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "auto",
+        "orientation": "auto"
+      }
+    },
+    {
+      "id": 1,
+      "title": "Outcomes by policy / mode / schema",
+      "type": "barchart",
+      "datasource": {
+        "type": "grafana-clickhouse-datasource",
+        "uid": "telemetry-clickhouse"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 5,
+        "w": 12,
+        "h": 9
+      },
+      "description": "",
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": {
+            "mode": "palette-classic"
+          },
+          "min": 0
+        },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "editorType": "sql",
+          "queryType": "sql",
+          "format": 1,
+          "rawSql": "SELECT concat(JSONExtractString(properties,'policy'), ' / ', if(empty(JSONExtractString(properties,'mode')), 'legacy', JSONExtractString(properties,'mode')), ' / v', toString(schema_version), ' / ', JSONExtractString(properties,'outcome')) AS result, count() AS simulations FROM telemetry.events_deduplicated WHERE $__timeFilter(timestamp) AND game_id=${game_id:sqlstring} AND environment=${environment:sqlstring} AND build_version=if(${build_version:sqlstring}='__latest__', (SELECT build_version FROM telemetry.events_deduplicated WHERE game_id=${game_id:sqlstring} AND environment=${environment:sqlstring} GROUP BY build_version ORDER BY max(timestamp) DESC, build_version DESC LIMIT 1), ${build_version:sqlstring}) AND source_type=${source_type:sqlstring} AND (event_name='simulation_completed') GROUP BY result ORDER BY simulations DESC, result LIMIT 40"
+        }
+      ],
+      "options": {
+        "orientation": "horizontal",
+        "showValue": "always",
+        "stacking": "none",
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": false
+        },
+        "tooltip": {
+          "mode": "multi"
+        }
+      }
     },
     {
       "datasource": {
@@ -165,10 +251,10 @@
         "overrides": []
       },
       "gridPos": {
-        "h": 9,
-        "w": 24,
-        "x": 0,
-        "y": 18
+        "x": 12,
+        "y": 5,
+        "w": 12,
+        "h": 9
       },
       "id": 3,
       "options": {
@@ -189,7 +275,7 @@
             "lastNotNull"
           ],
           "fields": "/^plays$/",
-          "limit": 50,
+          "limit": 20,
           "values": true
         },
         "showUnfilled": true,
@@ -202,16 +288,166 @@
           "editorType": "sql",
           "format": 1,
           "queryType": "sql",
-          "rawSql": "SELECT JSONExtractString(properties,'card_name') AS card, count() AS plays FROM telemetry.events_deduplicated WHERE $__timeFilter(timestamp) AND game_id=${game_id:sqlstring} AND environment=${environment:sqlstring} AND build_version=${build_version:sqlstring} AND source_type=${source_type:sqlstring} AND (event_name='card_played') GROUP BY card LIMIT 1000",
+          "rawSql": "SELECT JSONExtractString(properties,'card_name') AS card, count() AS plays FROM telemetry.events_deduplicated WHERE $__timeFilter(timestamp) AND game_id=${game_id:sqlstring} AND environment=${environment:sqlstring} AND build_version=if(${build_version:sqlstring}='__latest__', (SELECT build_version FROM telemetry.events_deduplicated WHERE game_id=${game_id:sqlstring} AND environment=${environment:sqlstring} GROUP BY build_version ORDER BY max(timestamp) DESC, build_version DESC LIMIT 1), ${build_version:sqlstring}) AND source_type=${source_type:sqlstring} AND (event_name='card_played') GROUP BY card ORDER BY plays DESC, card LIMIT 20",
           "refId": "A"
         }
       ],
       "title": "Bot card usage",
-      "type": "bargauge"
+      "type": "bargauge",
+      "description": "Most played cards in the selected time range."
+    },
+    {
+      "id": 6,
+      "title": "Simulation outcomes over time",
+      "type": "timeseries",
+      "datasource": {
+        "type": "grafana-clickhouse-datasource",
+        "uid": "telemetry-clickhouse"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 14,
+        "w": 12,
+        "h": 8
+      },
+      "description": "Counts per adaptive time bucket; empty buckets have no bar.",
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "drawStyle": "bars",
+            "lineWidth": 0,
+            "fillOpacity": 70,
+            "showPoints": "auto",
+            "spanNulls": false,
+            "axisCenteredZero": false
+          }
+        },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "editorType": "sql",
+          "queryType": "sql",
+          "format": 0,
+          "rawSql": "SELECT $__timeInterval(timestamp) AS time, JSONExtractString(properties,'outcome') AS outcome, count() AS simulations FROM telemetry.events_deduplicated WHERE $__timeFilter(timestamp) AND game_id=${game_id:sqlstring} AND environment=${environment:sqlstring} AND build_version=if(${build_version:sqlstring}='__latest__', (SELECT build_version FROM telemetry.events_deduplicated WHERE game_id=${game_id:sqlstring} AND environment=${environment:sqlstring} GROUP BY build_version ORDER BY max(timestamp) DESC, build_version DESC LIMIT 1), ${build_version:sqlstring}) AND source_type=${source_type:sqlstring} AND (event_name='simulation_completed') GROUP BY time, outcome ORDER BY time, outcome"
+        }
+      ],
+      "options": {
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        },
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        }
+      },
+      "maxDataPoints": 1000,
+      "interval": "10s"
+    },
+    {
+      "id": 7,
+      "title": "Average duration by policy / mode / schema",
+      "type": "timeseries",
+      "datasource": {
+        "type": "grafana-clickhouse-datasource",
+        "uid": "telemetry-clickhouse"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 14,
+        "w": 12,
+        "h": 8
+      },
+      "description": "",
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ms",
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 12,
+            "showPoints": "always",
+            "spanNulls": false,
+            "axisCenteredZero": false
+          }
+        },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "editorType": "sql",
+          "queryType": "sql",
+          "format": 0,
+          "rawSql": "SELECT $__timeInterval(timestamp) AS time, concat(JSONExtractString(properties,'policy'), ' / ', if(empty(JSONExtractString(properties,'mode')), 'legacy', JSONExtractString(properties,'mode')), ' / v', toString(schema_version)) AS cohort, avg(JSONExtractInt(properties,'duration_ms')) AS duration FROM telemetry.events_deduplicated WHERE $__timeFilter(timestamp) AND game_id=${game_id:sqlstring} AND environment=${environment:sqlstring} AND build_version=if(${build_version:sqlstring}='__latest__', (SELECT build_version FROM telemetry.events_deduplicated WHERE game_id=${game_id:sqlstring} AND environment=${environment:sqlstring} GROUP BY build_version ORDER BY max(timestamp) DESC, build_version DESC LIMIT 1), ${build_version:sqlstring}) AND source_type=${source_type:sqlstring} AND (event_name='simulation_completed') GROUP BY time, cohort ORDER BY time, cohort"
+        }
+      ],
+      "options": {
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        },
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        }
+      },
+      "maxDataPoints": 1000,
+      "interval": "10s"
+    },
+    {
+      "id": 2,
+      "title": "Technical failures — seed and session",
+      "type": "table",
+      "datasource": {
+        "type": "grafana-clickhouse-datasource",
+        "uid": "telemetry-clickhouse"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 22,
+        "w": 24,
+        "h": 8
+      },
+      "description": "Session IDs distinguish older reused run IDs. These rows may include victory-screen automation failures; timeout does not establish a gameplay loss.",
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": {
+            "mode": "palette-classic"
+          }
+        },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "editorType": "sql",
+          "queryType": "sql",
+          "format": 1,
+          "rawSql": "SELECT timestamp, session_id, run_id, JSONExtractInt(properties,'seed') AS seed, JSONExtractString(properties,'policy') AS policy, JSONExtractString(properties,'mode') AS mode, schema_version, JSONExtractString(properties,'outcome') AS outcome, JSONExtractInt(properties,'turns') AS turns, JSONExtractInt(properties,'duration_ms') AS duration_ms FROM telemetry.events_deduplicated WHERE $__timeFilter(timestamp) AND game_id=${game_id:sqlstring} AND environment=${environment:sqlstring} AND build_version=if(${build_version:sqlstring}='__latest__', (SELECT build_version FROM telemetry.events_deduplicated WHERE game_id=${game_id:sqlstring} AND environment=${environment:sqlstring} GROUP BY build_version ORDER BY max(timestamp) DESC, build_version DESC LIMIT 1), ${build_version:sqlstring}) AND source_type=${source_type:sqlstring} AND (event_name='simulation_completed' AND JSONExtractString(properties,'outcome') NOT IN ('win','loss','aborted','replay_complete')) ORDER BY timestamp DESC LIMIT 100"
+        }
+      ],
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm",
+        "sortBy": []
+      }
     }
   ],
   "preload": false,
-  "refresh": "",
+  "refresh": "30s",
   "schemaVersion": 42,
   "tags": [
     "telemetry",
@@ -232,7 +468,8 @@
         "name": "game_id",
         "query": "SELECT DISTINCT game_id FROM telemetry.events_deduplicated ORDER BY game_id",
         "refresh": 1,
-        "type": "query"
+        "type": "query",
+        "multi": false
       },
       {
         "current": {
@@ -247,12 +484,13 @@
         "name": "environment",
         "query": "SELECT DISTINCT environment FROM telemetry.events_deduplicated ORDER BY environment",
         "refresh": 1,
-        "type": "query"
+        "type": "query",
+        "multi": false
       },
       {
         "current": {
-          "text": "0.0.7.0",
-          "value": "0.0.7.0"
+          "text": "Latest reporting build",
+          "value": "__latest__"
         },
         "datasource": {
           "type": "grafana-clickhouse-datasource",
@@ -260,9 +498,13 @@
         },
         "includeAll": false,
         "name": "build_version",
-        "query": "SELECT DISTINCT build_version FROM telemetry.events_deduplicated ORDER BY build_version",
+        "query": "SELECT 'Latest reporting build' AS __text, '__latest__' AS __value UNION ALL SELECT build_version AS __text, build_version AS __value FROM (SELECT build_version, max(timestamp) AS last_seen FROM telemetry.events_deduplicated WHERE game_id=${game_id:sqlstring} AND environment=${environment:sqlstring} GROUP BY build_version ORDER BY last_seen DESC, build_version DESC)",
         "refresh": 1,
-        "type": "query"
+        "type": "query",
+        "multi": false,
+        "label": "Build",
+        "sort": 0,
+        "description": "Latest event timestamp for this game/environment, across sources and outside the time picker. Select a version to pin history."
       },
       {
         "current": {
@@ -277,7 +519,8 @@
         "name": "source_type",
         "query": "SELECT DISTINCT source_type FROM telemetry.events_deduplicated ORDER BY source_type",
         "refresh": 1,
-        "type": "query"
+        "type": "query",
+        "multi": false
       }
     ]
   },
@@ -289,5 +532,5 @@
   "timezone": "",
   "title": "AutoWalker QA",
   "uid": "autowalker-qa",
-  "version": 2
+  "description": "Defaults to the latest reporting build for the selected game/environment, across sources. Historical builds remain selectable. Panels respect the selected time range and source unless labeled global."
 }

@@ -118,6 +118,42 @@ docker compose up -d --build ingest
 docker compose restart grafana
 ```
 
+## Dashboard visualizations and build selection
+
+The five dashboards use summary stats, an encounter win-rate gauge, horizontal
+card/AI rankings and adaptive time series. Tables retain diagnostic details such
+as technical-failure seeds, encounter damage/healing and event schema versions.
+The QA card-usage gauge is preserved. Gameplay losses and automation failures are
+counted separately; a victory-screen stall can still produce a timeout.
+
+The **Build** selector defaults to **Latest reporting build**. This is a persistent
+selection, resolved on every panel refresh (30 seconds), rather than a saved
+version string. Latest means the build with the newest event timestamp for the
+selected game/environment, across human and bot sources and outside the time
+picker. Late uploads from an older build can therefore change the selection.
+Grafana cannot select a build that has not sent telemetry yet. Pick an explicit
+version to pin historical analysis; the Telemetry Health dashboard shows the
+resolved version. Existing URLs containing `var-build_version` override the default.
+
+The combat damage panels require v2 events. Human dashboards still default to
+human data: select `bot` to inspect AutoWalker data. Global ingestion counters
+ignore game/build/source filters and display cumulative snapshots, including
+process resets, rather than sums of counters.
+
+Edit `grafana/dashboards/*.json` directly to change dashboard layouts, queries,
+and settings. Grafana loads these JSON files through file provisioning; no
+generation step is needed. To check the backend configuration files:
+
+```sh
+python validate_artifacts.py
+```
+
+Deploy the updated `grafana/dashboards/*.json` files to the backend checkout on
+the Docker host and run `docker compose restart grafana` from that checkout.
+This requires no ingestion rebuild or database migration. Direct MCP saves
+require dashboard write permission and a provider that permits UI updates;
+this deployment uses file provisioning, so deploy the files to persist changes.
+
 ## Contract, deduplication and limits
 
 `POST /v1/events`, JSON `{ "events": [envelope, ...] }`, 1–100 events, at most 1 MiB
