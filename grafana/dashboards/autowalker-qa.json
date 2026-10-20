@@ -408,7 +408,7 @@
     },
     {
       "id": 2,
-      "title": "Technical failures — seed and session",
+      "title": "Technical failures \u00e2\u20ac\u201d seed and session",
       "type": "table",
       "datasource": {
         "type": "grafana-clickhouse-datasource",
@@ -437,6 +437,45 @@
           "queryType": "sql",
           "format": 1,
           "rawSql": "SELECT timestamp, session_id, run_id, JSONExtractInt(properties,'seed') AS seed, JSONExtractString(properties,'policy') AS policy, JSONExtractString(properties,'mode') AS mode, schema_version, JSONExtractString(properties,'outcome') AS outcome, JSONExtractInt(properties,'turns') AS turns, JSONExtractInt(properties,'duration_ms') AS duration_ms FROM telemetry.events_deduplicated WHERE $__timeFilter(timestamp) AND game_id=${game_id:sqlstring} AND environment=${environment:sqlstring} AND build_version=if(${build_version:sqlstring}='__latest__', (SELECT build_version FROM telemetry.events_deduplicated WHERE game_id=${game_id:sqlstring} AND environment=${environment:sqlstring} GROUP BY build_version ORDER BY max(timestamp) DESC, build_version DESC LIMIT 1), ${build_version:sqlstring}) AND source_type=${source_type:sqlstring} AND (event_name='simulation_completed' AND JSONExtractString(properties,'outcome') NOT IN ('win','loss','aborted','replay_complete')) ORDER BY timestamp DESC LIMIT 100"
+        }
+      ],
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm",
+        "sortBy": []
+      }
+    },
+    {
+      "id": 8,
+      "title": "Aborts and technical failures \u2014 reasons and limits",
+      "type": "table",
+      "datasource": {
+        "type": "grafana-clickhouse-datasource",
+        "uid": "telemetry-clickhouse"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 30,
+        "w": 24,
+        "h": 10
+      },
+      "description": "Completion metadata provides stop reasons, limits and final state without local logs. Older events show legacy_unknown; absent numeric metadata appears as zero.",
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": {
+            "mode": "palette-classic"
+          }
+        },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "editorType": "sql",
+          "queryType": "sql",
+          "format": 1,
+          "rawSql": "SELECT timestamp, session_id, run_id, JSONExtractInt(properties,'seed') AS seed, JSONExtractString(properties,'policy') AS policy, JSONExtractString(properties,'mode') AS mode, JSONExtractString(properties,'outcome') AS outcome, if(empty(JSONExtractString(metadata,'reason_code')), 'legacy_unknown', JSONExtractString(metadata,'reason_code')) AS reason_code, JSONExtractString(metadata,'reason') AS reason, JSONExtractString(metadata,'current_encounter') AS encounter, JSONExtractInt(properties,'floors_climbed') AS floor, JSONExtractInt(properties,'turns') AS turns, JSONExtractInt(metadata,'actions') AS actions, JSONExtractInt(metadata,'actions_this_turn') AS actions_this_turn, JSONExtractInt(metadata,'max_turns') AS max_turns, JSONExtractInt(metadata,'max_actions') AS max_actions, JSONExtractInt(metadata,'max_actions_per_turn') AS max_actions_per_turn, JSONExtractInt(metadata,'final_health') AS final_health, JSONExtractRaw(metadata,'last_action') AS last_action FROM telemetry.events_deduplicated WHERE $__timeFilter(timestamp) AND game_id=${game_id:sqlstring} AND environment=${environment:sqlstring} AND build_version=if(${build_version:sqlstring}='__latest__', (SELECT build_version FROM telemetry.events_deduplicated WHERE game_id=${game_id:sqlstring} AND environment=${environment:sqlstring} GROUP BY build_version ORDER BY timestamp DESC LIMIT 200"
         }
       ],
       "options": {
