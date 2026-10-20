@@ -483,6 +483,45 @@
         "cellHeight": "sm",
         "sortBy": []
       }
+    },
+    {
+      "id": 9,
+      "title": "Encounter outcomes by loadout",
+      "type": "table",
+      "datasource": {
+        "type": "grafana-clickhouse-datasource",
+        "uid": "telemetry-clickhouse"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 40,
+        "w": 24,
+        "h": 10
+      },
+      "description": "Controlled loadouts are separate from old relic-free starter tests. Fingerprints distinguish health and exact preset contents. These are not human win rates.",
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": {
+            "mode": "palette-classic"
+          }
+        },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "editorType": "sql",
+          "queryType": "sql",
+          "format": 1,
+          "rawSql": "SELECT JSONExtractString(metadata,'encounter') AS encounter, JSONExtractString(properties,'policy') AS policy, if(empty(JSONExtractString(metadata,'loadout')), 'legacy_unspecified', JSONExtractString(metadata,'loadout')) AS loadout, JSONExtractString(metadata,'loadout_fingerprint') AS fingerprint, count() AS simulations, countIf(JSONExtractString(properties,'outcome')='win') AS wins, countIf(JSONExtractString(properties,'outcome')='loss') AS losses, round(avgIf(JSONExtractInt(properties,'damage_taken'), JSONExtractString(properties,'outcome')='win'), 2) AS win_damage FROM telemetry.events_deduplicated WHERE $__timeFilter(timestamp) AND game_id=${game_id:sqlstring} AND environment=${environment:sqlstring} AND build_version=if(${build_version:sqlstring}='__latest__', (SELECT build_version FROM telemetry.events_deduplicated WHERE game_id=${game_id:sqlstring} AND environment=${environment:sqlstring} GROUP BY build_version ORDER BY max(timestamp) DESC, build_version DESC LIMIT 1), ${build_version:sqlstring}) AND source_type=${source_type:sqlstring} AND (event_name='simulation_completed')  AND JSONExtractString(properties,'mode')='encounter' GROUP BY encounter, policy, loadout, fingerprint ORDER BY encounter, policy, loadout, fingerprint"
+        }
+      ],
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm",
+        "sortBy": []
+      }
     }
   ],
   "preload": false,
